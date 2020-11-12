@@ -29,12 +29,15 @@ UBOOT_ENTRYPOINT_nua3500 = "0x80E00000"
 # =========================================================================
 # trusted-firmware-a
 # =========================================================================
+TFA_PLATFORM = "nua3500"
 PREFERRED_PROVIDER_virtual/trusted-firmware-a = "tf-a-nua3500"
 EXTRA_IMAGEDEPENDS += "virtual/trusted-firmware-a"
 
 # =========================================================================
 # optee-os
 # =========================================================================
+OPTEE_PLATFORM = "nuvoton"
+OPTEE_PLATFORM_FLAVOR = "NUA3500"
 PREFERRED_PROVIDER_virtual/optee-os = "optee-os-nua3500"
 EXTRA_IMAGEDEPENDS += "virtual/optee-os"
 
@@ -44,12 +47,15 @@ EXTRA_IMAGEDEPENDS += "virtual/optee-os"
 EXTRA_IMAGEDEPENDS += "m4proj"
 
 # =========================================================================
+# nuwriter
+# =========================================================================
+EXTRA_IMAGEDEPENDS += "python3-nuwriter-native"
+
+# =========================================================================
 # fs
 # =========================================================================
-IMAGE_FSTYPES = "ext2 tar.bz2"
-
-#IMAGE_CLASSES = "image_types_nvt"
-
+IMAGE_FSTYPES = " spinand sdcard nand ext2 tar.bz2 "
+IMAGE_CLASSES = "image_types_nvt"
 
 # Disable the serial console due to auto-serial-console
 SERIAL_CONSOLES = "115200;ttyS0"

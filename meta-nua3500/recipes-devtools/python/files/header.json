@@ -1,0 +1,47 @@
+{
+    "header":
+    {
+        "version": "0x20200622",
+        "spiinfo":
+        {
+            "pagesize": "2048",
+            "sparearea": "64",
+            "pageperblk": "64",
+            "quadread": "0x6B",
+            "readsts": "0x05",
+            "writests": "0x01",
+            "stsvalue": "0x02",
+            "dummy1": "0",
+            "dummy2": "1",
+            "suspintvl": "1"
+        },
+        "secureboot": "no",
+        "entrypoint": "0x90000000",
+        "aeskey" : "5E76953BF598581F925B7995157844747FABE669ABF000345E0EE21B63624D59",
+        "ecdsakey": "5E76953BF598581F925B7995157844747FABE669ABF000345E0EE21B63624D59",
+        "image":
+        [
+            {
+              "offset": "0x500000",
+              "loadaddr": "0x28030000",
+              "type": "2",
+              "file": "bl2-nua3500.bin"
+            },
+            {
+              "offset": "0x50A000",
+              "loadaddr": "0x90000000",
+              "type": "4",
+              "file": "bl2-nua3500.dtb"
+            },
+            {
+              "offset": "0x60D000",
+              "loadaddr": "0x90000000",
+              "type": "4",
+              "file": "fip.bin"
+            }
+	]
+    }
+}
+
+
+

@@ -37,7 +37,7 @@ KERNEL_IMAGETYPE = "Image"
 
 do_configure_prepend() {
     bbnote "Copying defconfig"
-    cp ${S}/arch/${ARCH}/configs/nua3500_defconfig ${WORKDIR}/defconfig
+    cp ${S}/arch/${ARCH}/configs/${KERNEL_DEFCONFIG} ${WORKDIR}/defconfig
 }
 
 COMPATIBLE_MACHINE = "(nua3500)"

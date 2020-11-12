@@ -22,8 +22,11 @@ LIC_FILES_CHKSUM = "file://LICENSE;md5=c1f21c4f72f372ef38a5a4aee55ec173"
 
 COMPATIBLE_MACHINE = "(nua3500)"
 
-SRC_URI = "git://github.com/OP-TEE/optee_os.git;protocol=https;name=os"
-SRCREV = "bc5921cdab538c8ae48422f5ffd600f1cbdd95b2"
+SRC_URI = "git://github.com/NUA3500/optee_os-v3.9.0.git;protocol=https;nobranch=1"
+SRCREV = "master"
+
+SRC_URI += " file://0001-allow-setting-sysroot-for-libgcc-lookup.patch \
+           "
 
 OPTEE_VERSION = "3.9.0"
 PV = "${OPTEE_VERSION}"
@@ -32,17 +35,17 @@ S = "${WORKDIR}/git"
 B = "${WORKDIR}/build"
 
 EXTRA_OEMAKE = " \
-		CROSS_COMPILE_core=${HOST_PREFIX} \
-		CROSS_COMPILE64=${HOST_PREFIX} \
-		CFG_ARM64_core=y ta-targets=ta_arm64 \
-		NOWERROR=1 \
-		LDFLAGS= \
-		comp-cflagscore='--sysroot=${STAGING_DIR_TARGET}' \
-		CFLAGS='-mno-outline-atomics' \
-        "
+                CROSS_COMPILE_core=${HOST_PREFIX} \
+                CROSS_COMPILE64=${HOST_PREFIX} \
+                CFG_ARM64_core=y ta-targets=ta_arm64 \
+                NOWERROR=1 \
+                LDFLAGS= \
+                LIBGCC_LOCATE_CFLAGS=--sysroot=${STAGING_DIR_HOST} \
+                comp-cflagscore='--sysroot=${STAGING_DIR_TARGET}' \
+               "
 
-export PLATFORM="imx"
-export PLATFORM_FLAVOR="mx8qxpmek"
+export PLATFORM = "${OPTEE_PLATFORM}"
+export PLATFORM_FLAVOR = "${OPTEE_PLATFORM_FLAVOR}"
 
 do_compile(){
 	oe_runmake -C ${S} O=${B}
@@ -64,5 +67,4 @@ do_deploy() {
     install -m 644 ${B}/core/${OPTEE_ELF}.${OPTEE_ELF_SUFFIX} ${DEPLOYDIR}/${OPTEE_ELF}-${OPTEE_BOOTCHAIN}.${OPTEE_ELF_SUFFIX}
 }
 addtask deploy before do_build after do_compile
-
 
