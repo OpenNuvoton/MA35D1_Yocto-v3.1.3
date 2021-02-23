@@ -24,7 +24,7 @@ directory <build-dir>. The build directory configuration is unchanged.
 Examples:
 
 - To create a new Yocto build directory:
-  $ MACHINE=nua3500evb DISTRO=nua3500-fb source $PROGNAME build
+  $ MACHINE=ma35d1-evb DISTRO=nvt-ma35d1 source $PROGNAME build
 
 - To use an existing Yocto build directory:
   $ source $PROGNAME build
@@ -122,7 +122,7 @@ if [ "$build_dir_setup_enabled" = "true" ]; then
     mv conf/local.conf conf/local.conf.sample
 
     # Generate the local.conf based on the Yocto defaults
-    TEMPLATES=$CWD/sources/meta-nua3500/base/
+    TEMPLATES=$CWD/sources/meta-ma35d1/base/
     grep -v '^#\|^$' conf/local.conf.sample > conf/local.conf
     cat >> conf/local.conf <<EOF
 

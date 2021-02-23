@@ -1,0 +1,13 @@
+baudrate=115200
+bootdelay=3
+ethact=emac
+ethaddr=00:00:00:11:66:88
+ipaddr=192.168.0.101
+serverip=192.168.0.100
+spimode=1
+stderr=serial
+stdin=serial
+stdout=serial
+bootcmd=nboot 0x7fc0 0 0x200000\; bootm 0x7fc0
+mtdids=nand0=nand0
+mtdparts=mtdparts=atmel_nand:1M@0(FIB),15M(FIT),-(user)

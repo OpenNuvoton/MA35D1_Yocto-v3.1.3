@@ -1,0 +1,75 @@
+/dts-v1/;
+
+/ {
+	description = "U-Boot fitImage for ma35d1 aarch64 kernel";
+	#address-cells = <1>;
+
+	images {
+		kernel {
+			description = "Linux Kernel";
+			data = /incbin/("./Image");
+			type = "kernel";
+			arch = "arm64";
+			os = "linux";
+			compression = "none";
+			load = <0x80080000>;
+			entry = <0x80080000>;
+			hash-1 {
+				algo = "sha256";
+			};
+		};
+		fdt-1 {
+			description = "Flattened Device Tree blob for SPINAND boot";
+			data = /incbin/("./ma35d1-evb--5.4.55-r0-ma35d1-qt-20201102142448.dtb");
+			type = "flat_dt";
+			arch = "arm64";
+			compression = "none";
+			load = <0x88000000>;
+			hash-1 {
+				algo = "sha256";
+			};
+		};
+		fdt-2 {
+			description = "Flattened Device Tree blob for NAND boot";
+                        data = /incbin/("./ma35d1-evb--5.4.55-r0-ma35d1-qt-20201102142448.dtb");
+                        type = "flat_dt";
+                        arch = "arm64";
+                        compression = "none";
+                        load = <0x88000000>;
+                        hash-1 {
+                                algo = "sha256";
+                        };
+                };
+		fdt-3 {
+			description = "Flattened Device Tree blob for SDCARD boot";
+                        data = /incbin/("./ma35d1-evb--5.4.55-r0-ma35d1-qt-20201102142448.dtb");
+                        type = "flat_dt";
+                        arch = "arm64";
+                        compression = "none";
+                        load = <0x88000000>;
+                        hash-1 {
+                                algo = "sha256";
+                        };
+                };
+	};
+
+	configurations {
+		default = "conf-nand";
+		conf-spinand {
+			description = "SPINAND configuration"; 
+			kernel = "kernel";
+			fdt = "fdt-1";
+		};
+		conf-nand {
+			description = "NAND configuration";
+                        kernel = "kernel";
+                        fdt = "fdt-2";
+                };
+		conf-sdcard {
+			description = "SDCARD configuration";
+                        kernel = "kernel";
+                        fdt = "fdt-3";
+                };
+	};
+};
+

@@ -1,0 +1,55 @@
+{
+	"image":
+	[
+            {
+                    "offset": "0x0",
+		    "file": "MBR.scdard.bin",
+		    "type": 0
+            },
+	    {
+		    "offset": "0x400",
+		    "file": "conv/header.bin",
+		    "type": 0
+	    },
+	    {
+		    "offset": "0x10000",
+		    "file": "ddrimg_tfa.bin",
+		    "type": 0
+	    },            
+	    {
+		    "offset": "0x20000",
+		    "file": "bl2-ma35d1.dtb",
+		    "type": 0
+	    },
+	    {
+		    "offset": "0x30000",
+		    "file": "bl2-ma35d1.bin",
+		    "type": 0
+	    },
+	    {
+		    "offset": "0x40000",
+		    "file": "ma35d1-evb.dtb",
+		    "type": 0
+	    },
+	    {
+		    "offset": "0x80000",
+		    "file": "u-boot-initial-env.bin-sdcard",
+		    "type": 0
+	    }, 
+	    {
+		    "offset": "0x100000",
+		    "file": "fip.bin",
+		    "type": 0
+	    },
+	    {
+		    "offset": "0x200000",
+		    "file": "Image",
+		    "type": 0
+	    },
+            {
+		    "offset": "0x2000000",
+		    "file": "rootfs.ext2-sdcard",
+		    "type": 0
+	    }
+	]
+}
