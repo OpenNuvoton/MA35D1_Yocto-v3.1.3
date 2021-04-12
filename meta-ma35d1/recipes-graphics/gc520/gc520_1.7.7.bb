@@ -4,14 +4,12 @@ SECTION = "libs"
 LICENSE = "CLOSED"
 
 RV = "1.7-7"
-KV = "5.4.50"
 
 SRC_URI += " \
     file://libdirectfb_gal.so \
     file://libGAL.so \
     file://galcore.ko \
     "
-#do_package[noexec] = "1"
 do_package_qa[noexec] = "1"
 do_install() {
     install -d ${D}/${libdir}/directfb-${RV}/gfxdrivers/

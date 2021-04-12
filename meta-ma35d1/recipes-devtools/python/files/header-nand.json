@@ -29,7 +29,7 @@
             },
             {
               "offset": "0xC0000",
-              "loadaddr": "0x28020000",
+              "loadaddr": "0x28023000",
               "type": "3",
               "file": "bl2-ma35d1.dtb"
             },

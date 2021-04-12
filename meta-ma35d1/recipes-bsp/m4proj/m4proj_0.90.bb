@@ -5,7 +5,7 @@ DEPENDS = " gcc-arm-none-eabi-native nu-eclipse-native "
 inherit deploy
 
 LICENSE = "BSD"
-LIC_FILES_CHKSUM = "file://Readme.pdf;md5=d62023be2f693605b4f6d73a5013ab30"
+LIC_FILES_CHKSUM = "file://Library/CMSIS/CMSIS_END_USER_LICENCE_AGREEMENT.pdf;md5=2cd7232123b57896151a579127c8b51b"
 
 SRCREV= "master"
 
@@ -33,7 +33,7 @@ python do_compile() {
     f.write("S="+d.getVar('S',1)+"\n")
     f.write("NUECLIPSE="+d.getVar('NUECLIPSE',1))
     f.write("\n======= m480-bsp =======\n")
-    for dirPath, dirNames, fileNames in os.walk("SampleCode/StdDriver"):
+    for dirPath, dirNames, fileNames in os.walk("SampleCode"):
         for file in fnmatch.filter(fileNames, '*.cproject'):
             if not os.path.isdir(dirPath+"/Release"):
                 f.write("dirPath="+dirPath+"\n")
@@ -66,7 +66,7 @@ python do_install() {
     f.write("NUECLIPSE="+d.getVar('NUECLIPSE',1)+"\n")
     #f.write("PDK_INSTALL_DIR_RECIPE="+d.getVar('PDK_INSTALL_DIR_RECIPE',1)+"\n")
     f.write("======= m480-bsp =======\n")
-    for dirPath, dirNames, fileNames in os.walk("SampleCode/StdDriver"):
+    for dirPath, dirNames, fileNames in os.walk("SampleCode"):
         for file in fnmatch.filter(fileNames, '*.elf'):
             cmd = "cp "+ dirPath + "/" + file +" "+ d.getVar('D',1) + d.getVar('exec_prefix',1) + "/m4proj"
             f.write("cmd="+cmd+"\n")

@@ -2,8 +2,6 @@ SUMMARY = "dcultrafb.ko for kernel framebuffer"
 SECTION = "modules"
 LICENSE = "CLOSED"
 
-KV = "5.4.50"
-
 SRC_URI += " \
     file://dcultrafb.ko \
     "

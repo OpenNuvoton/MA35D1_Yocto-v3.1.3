@@ -17,10 +17,9 @@ SRCBRANCH = "2020.07"
 SRC_URI = "${UBOOT_SRC}"
 SRCREV = "master"
 
-SRC_URI += " file://uEnv-spinand.txt \
-             file://uEnv-nand.txt \
-             file://uEnv-sdcard.txt \
-             file://images.its \
+SRC_URI += " file://uEnv-${MACHINE}-spinand.txt \
+             file://uEnv-${MACHINE}-nand.txt \
+             file://uEnv-${MACHINE}-sdcard.txt \
            "
 
 PV = "${SRCBRANCH}"
@@ -39,7 +38,7 @@ do_compile_append() {
                 if [ $j -eq $i ]
                 then
                     if [ -n "${UBOOT_INITIAL_ENV}" ]; then
-                        cp ${WORKDIR}/uEnv-${type}.txt ${B}/${config}/u-boot-initial-env-${type}
+                        cp ${WORKDIR}/uEnv-${MACHINE}-${type}.txt ${B}/${config}/u-boot-initial-env-${type}
                         ${B}/${config}/tools/mkenvimage -s 0x10000 -o ${B}/${config}/u-boot-initial-env.bin-${type} ${B}/${config}/u-boot-initial-env-${type}
                     fi
                 fi
@@ -68,7 +67,6 @@ do_deploy_append() {
         done
         unset  i
     fi
-    cp ${WORKDIR}/images.its ${DEPLOY_DIR_IMAGE}/images.its
 }
 
 PACKAGE_ARCH = "${MACHINE_ARCH}"

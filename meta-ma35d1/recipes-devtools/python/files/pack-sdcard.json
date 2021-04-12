@@ -28,7 +28,7 @@
 	    },
 	    {
 		    "offset": "0x40000",
-		    "file": "ma35d1-evb.dtb",
+		    "file": "Image.dtb",
 		    "type": 0
 	    },
 	    {
@@ -38,7 +38,7 @@
 	    }, 
 	    {
 		    "offset": "0x100000",
-		    "file": "fip.bin",
+		    "file": "fip.bin-sdcard",
 		    "type": 0
 	    },
 	    {
@@ -48,7 +48,7 @@
 	    },
             {
 		    "offset": "0x2000000",
-		    "file": "rootfs.ext2-sdcard",
+		    "file": "rootfs.ext4-sdcard",
 		    "type": 0
 	    }
 	]

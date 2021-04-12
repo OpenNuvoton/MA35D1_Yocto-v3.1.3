@@ -14,6 +14,7 @@ include conf/machine/include/tune-cortexa35.inc
 # =========================================================================
 # Kernel
 # =========================================================================
+KV = "5.4.110"
 PREFERRED_PROVIDER_kernel = "linux-ma35d1"
 PREFERRED_PROVIDER_virtual/kernel = "linux-ma35d1"
 
@@ -29,7 +30,8 @@ UBOOT_ENTRYPOINT_ma35d1 = "0x80E00000"
 # =========================================================================
 # trusted-firmware-a
 # =========================================================================
-TFA_PLATFORM = "ma35d1"
+TFA_PLATFORM ?= "ma35d1"
+TFA_DTB ?= "ma35d1xx7"
 PREFERRED_PROVIDER_virtual/trusted-firmware-a = "tf-a-ma35d1"
 EXTRA_IMAGEDEPENDS += "virtual/trusted-firmware-a"
 
@@ -37,7 +39,7 @@ EXTRA_IMAGEDEPENDS += "virtual/trusted-firmware-a"
 # optee-os
 # =========================================================================
 OPTEE_PLATFORM = "nuvoton"
-OPTEE_PLATFORM_FLAVOR = "ma35d1"
+OPTEE_PLATFORM_FLAVOR = "MA35D1"
 PREFERRED_PROVIDER_virtual/optee-os = "optee-os-ma35d1"
 EXTRA_IMAGEDEPENDS += "virtual/optee-os"
 
@@ -54,8 +56,7 @@ EXTRA_IMAGEDEPENDS += "python3-nuwriter-native"
 # =========================================================================
 # fs
 # =========================================================================
-#IMAGE_FSTYPES = " spinand sdcard nand ext2 tar.bz2 "
-IMAGE_FSTYPES = " sdcard ext2 tar.bz2 "
+IMAGE_FSTYPES ?= " sdcard ext4 tar.bz2"
 IMAGE_CLASSES = "image_types_nvt"
 
 # Block size for SPINAND, kb
@@ -73,4 +74,12 @@ USE_VT = "0"
 
 # Free size for SD card, kb
 SDCARD_FREE_SIZE ?="0"
+
+# Use the expected value of the ubifs filesystem's volume name in the kernel
+UBI_VOLNAME ?= "rootfs"
+# The biggest NANDs on current modules are 110MB.
+# This sums up to 2048 LEBs available for the ubifs (-c)
+MKUBIFS_ARGS ?= "-F -m 2048 -e 126976 -c 732"
+UBINIZE_ARGS ?= "-m 2048 -p 128KiB -s 2048 -O 2048"
+
 

@@ -1,0 +1,15 @@
+--- SDL2-2.0.12/src/video/directfb/SDL_DirectFB_render.c	2020-03-11 09:36:18.000000000 +0800
++++ SDL2-2.0.12_modify/src/video/directfb/SDL_DirectFB_render.c	2021-02-25 18:06:11.138650636 +0800
+@@ -198,11 +198,10 @@
+             SDL_DFB_CHECK(destsurf->SetDstBlendFunction(destsurf, DSBF_SRCCOLOR));
+ 
+             break;
+-        }
+         case SDL_BLENDMODE_MUL:
+             data->blitFlags = DSBLIT_BLEND_ALPHACHANNEL;
+             data->drawFlags = DSDRAW_BLEND;
+-            SDL_DFB_CHECK(destsurf->SetSrcBlendFunction(destsurf, DSBF_DSTCOLOR));
++            SDL_DFB_CHECK(destsurf->SetSrcBlendFunction(destsurf, DSBF_DESTCOLOR));
+             SDL_DFB_CHECK(destsurf->SetDstBlendFunction(destsurf, DSBF_INVSRCALPHA));
+ 
+             break;
