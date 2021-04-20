@@ -1,38 +1,48 @@
-From 858e0b0e048a109c0c463fc63fa58d209c743fed Mon Sep 17 00:00:00 2001
-From: schung1218 <shanchun1218@gmail.com>
-Date: Thu, 1 Apr 2021 05:44:07 +0000
-Subject: [PATCH] Add_VC8000
+From 6563d4051b8f66a0dfa6c139b0ec407d92aa5d5c Mon Sep 17 00:00:00 2001
+From: ychuang3 <ychuang3@nuvoton.com>
+Date: Tue, 20 Apr 2021 10:54:58 +0800
+Subject: [PATCH] Nuvoton MA35D1 port.
 
 ---
- Makefile            |  168 ++--
- args.c              |  231 +++---
- args.h              |   66 +-
- common.h            |  361 +++++----
- dcfb.h              |  106 +++
- fb.c                |  479 +++++++++++
- fileops.c           |   60 ++
- fileops.h           |   34 +
- main.c              | 1891 +++++++++++--------------------------------
- msm-v4l2-controls.h |  461 +++++++++++
- parser.c            |  626 ++++++++++++++
- parser.h            |   96 +++
- queue.c             |   89 ++
- queue.h             |   49 ++
- video.c             | 1832 +++++++++++------------------------------
- video.h             |  159 ++--
- 16 files changed, 3450 insertions(+), 3258 deletions(-)
- create mode 100755 dcfb.h
- create mode 100755 fb.c
+ Makefile                  |  168 ++--
+ README.md                 |   19 -
+ args.c                    |  231 +++---
+ args.h                    |   66 +-
+ common.h                  |  361 +++++----
+ dcfb.h                    |  106 +++
+ display.c                 |  985 -----------------------
+ display.h                 |   68 --
+ fileops.c                 |   61 ++
+ fileops.h                 |   34 +
+ list.h                    |  617 ---------------
+ main.c                    | 1896 ++++++++++++---------------------------------
+ msm-v4l2-controls.h       |  422 ++++++++++
+ parser.c                  |  626 +++++++++++++++
+ parser.h                  |   96 +++
+ protocol/linux-dmabuf.xml |  274 -------
+ protocol/scaler.xml       |  208 -----
+ queue.c                   |   89 +++
+ queue.h                   |   49 ++
+ video.c                   | 1842 ++++++++++++-------------------------------
+ video.h                   |  159 ++--
+ 21 files changed, 2945 insertions(+), 5432 deletions(-)
+ delete mode 100644 README.md
+ create mode 100644 dcfb.h
+ delete mode 100644 display.c
+ delete mode 100644 display.h
  create mode 100644 fileops.c
  create mode 100644 fileops.h
+ delete mode 100644 list.h
  create mode 100644 msm-v4l2-controls.h
  create mode 100644 parser.c
  create mode 100644 parser.h
+ delete mode 100644 protocol/linux-dmabuf.xml
+ delete mode 100644 protocol/scaler.xml
  create mode 100644 queue.c
  create mode 100644 queue.h
 
 diff --git a/Makefile b/Makefile
-index 87e552b..2cc9a7d 100644
+index 87e552b..6ca9d6d 100644
 --- a/Makefile
 +++ b/Makefile
 @@ -1,112 +1,56 @@
@@ -167,8 +177,8 @@ index 87e552b..2cc9a7d 100644
 +#
 +
 +# Toolchain path
-+#TCPATH = aarch64-poky-linux-
-+KERNELHEADERS = /usr/include
++TCPATH = aarch64-poky-linux-
++KERNELHEADERS = /home/ms10/work/NUA3500/linux-5.4.y
 +
 +#CC = ${TCPATH}gcc
 +#AR = "${TCPATH}ar rc"
@@ -184,7 +194,7 @@ index 87e552b..2cc9a7d 100644
 +SOURCES = main.c fileops.c args.c parser.c video.c queue.c
 +OBJECTS := $(SOURCES:.c=.o)
 +EXEC = vc8000-h264
-+CFLAGS = -Wall -g -lm
++#CFLAGS = -Wall -g -lm
 +#-Os
 +
 +all: $(EXEC)
@@ -196,7 +206,7 @@ index 87e552b..2cc9a7d 100644
 +	$(CC) -c $(CFLAGS) $(INCLUDES) $<
 +
 +$(EXEC): $(OBJECTS)
-+	$(CC) $(CFLAGS) -static -o $(EXEC) $(OBJECTS) -pthread
++	$(CC) $(CFLAGS) -o $(EXEC) $(OBJECTS) -pthread
 +
 +clean:
 +	rm -f *.o $(EXEC)
@@ -204,6 +214,31 @@ index 87e552b..2cc9a7d 100644
 +install:
 +
 +.PHONY: clean all
+diff --git a/README.md b/README.md
+deleted file mode 100644
+index 32c7ef6..0000000
+--- a/README.md
++++ /dev/null
+@@ -1,19 +0,0 @@
+-# v4l2-decode
+-
+-This is a forked version of [v4l2-decode][v4l2-decode.git], which can decode
+-video using the MSM V4L2 driver and ION allocations. Decoded frames are
+-displayed using [wayland][], via the [linux-dmabuf][] protocol.
+-
+-Dependencies:
+-
+-* linux-msm-4.4 kernel headers
+-* [wayland-client][wayland.git] library
+-* [wayland-protocols][wayland-protocols.git] files
+-* [ffmpeg 3.1][ffmpeg]
+-
+-[ffmpeg]: http://www.ffmpeg.org
+-[wayland]: http://wayland.freedesktop.org
+-[wayland.git]: https://cgit.freedesktop.org/wayland/wayland
+-[wayland-protocols.git]: https://cgit.freedesktop.org/wayland/wayland-protocols
+-[linux-dmabuf]: https://cgit.freedesktop.org/wayland/wayland-protocols/tree/unstable/linux-dmabuf/linux-dmabuf-unstable-v1.xml
+-[v4l2-decode.git]: https://git.linaro.org/people/stanimir.varbanov/v4l2-decode.git
 diff --git a/args.c b/args.c
 index b4c92e1..e4c1894 100644
 --- a/args.c
@@ -878,7 +913,7 @@ index 222a271..bd660a6 100644
 +#endif /* INCLUDE_COMMON_H */
 +
 diff --git a/dcfb.h b/dcfb.h
-new file mode 100755
+new file mode 100644
 index 0000000..aa7c42b
 --- /dev/null
 +++ b/dcfb.h
@@ -989,497 +1024,1077 @@ index 0000000..aa7c42b
 +dc_color_key;
 +
 +#endif
-diff --git a/fb.c b/fb.c
-new file mode 100755
-index 0000000..be1cf8b
---- /dev/null
-+++ b/fb.c
-@@ -0,0 +1,479 @@
-+/*
-+ * NUA3500 frame buffer device control
-+
-+ * Copyright (C) 2021, Nuvoton Technology Corporation
-+ *
-+ * Licensed under the Apache License, Version 2.0 (the "License");
-+ * you may not use this file except in compliance with the License.
-+ * You may obtain a copy of the License at
-+ *
-+ * http://www.apache.org/licenses/LICENSE-2.0
-+ *
-+ * Unless required by applicable law or agreed to in writing, software
-+ * distributed under the License is distributed on an "AS IS" BASIS,
-+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-+ * See the License for the specific language governing permissions and
-+ * limitations under the License.
-+ *
-+ */
-+
-+#include <linux/videodev2.h>
-+#include "msm-v4l2-controls.h"
-+#include <fcntl.h>
-+#include <string.h>
-+#include <sys/mman.h>
-+#include <sys/ioctl.h>
-+#include <sys/stat.h>
-+#include <sys/types.h>
-+#include <unistd.h>
-+#include <errno.h>
-+
-+#include "common.h"
-+
-+static char *dbg_type[2] = {"OUTPUT", "CAPTURE"};
-+static char *dbg_status[2] = {"ON", "OFF"};
-+
-+
-+int fb_open(struct instance *i, char *name)
-+{
-+	struct v4l2_capability cap;
-+	int ret;
-+
-+	i->video.fd = open(name, O_RDWR, 0);
-+	if (i->video.fd < 0) {
-+		err("Failed to open video decoder: %s", name);
-+		return -1;
-+	}
-+
-+	memzero(cap);
-+	ret = ioctl(i->video.fd, VIDIOC_QUERYCAP, &cap);
-+	if (ret) {
-+		err("Failed to verify capabilities");
-+		return -1;
-+	}
-+
-+	info("caps (%s): driver=\"%s\" bus_info=\"%s\" card=\"%s\" fd=0x%x",
-+	     name, cap.driver, cap.bus_info, cap.card, i->video.fd);
-+
-+	if (!(cap.capabilities & V4L2_CAP_VIDEO_CAPTURE_MPLANE) ||
-+	    !(cap.capabilities & V4L2_CAP_VIDEO_OUTPUT_MPLANE) ||
-+	    !(cap.capabilities & V4L2_CAP_STREAMING)) {
-+		err("Insufficient capabilities for video device (is %s correct?)",
-+		    name);
-+		// return -1;
-+	}
-+
-+        return 0;
-+}
-+
-+void video_close(struct instance *i)
-+{
-+	close(i->video.fd);
-+}
-+
-+int video_set_control(struct instance *i)
-+{
-+	struct v4l2_control control = {0};
-+	int ret;
-+
-+	control.id = V4L2_CID_MPEG_VIDC_VIDEO_CONTINUE_DATA_TRANSFER;
-+	control.value = 1;
-+
-+	ret = ioctl(i->video.fd, VIDIOC_S_CTRL, &control);
-+
-+	return ret;
-+}
-+
-+static int video_queue_buf(struct instance *i, int n, int l1, int l2, int type,
-+			   int nplanes)
-+{
-+	struct video *vid = &i->video;
-+	struct v4l2_buffer buf;
-+	struct v4l2_plane planes[2];
-+	int ret;
-+
-+	memzero(buf);
-+	memset(planes, 0, sizeof(planes));
-+	buf.type = type;
-+	buf.memory = V4L2_MEMORY_MMAP;
-+	buf.index = n;
-+	buf.length = nplanes;
-+	buf.m.planes = planes;
-+
-+	buf.m.planes[0].bytesused = l1;
-+	buf.m.planes[1].bytesused = l2;
-+
-+	buf.m.planes[0].data_offset = 0;
-+	buf.m.planes[1].data_offset = 0;
-+
-+	if (type == V4L2_BUF_TYPE_VIDEO_CAPTURE_MPLANE) {
-+		buf.m.planes[0].length = vid->cap_buf_size[0];
-+	} else {
-+		buf.m.planes[0].length = vid->out_buf_size;
-+		if (l1 == 0)
-+			buf.flags |= V4L2_QCOM_BUF_FLAG_EOS;
-+	}
-+
-+	ret = ioctl(vid->fd, VIDIOC_QBUF, &buf);
-+	if (ret) {
-+		err("Failed to queue buffer (index=%d) on %s (ret:%d)",
-+		    buf.index,
-+		    dbg_type[type==V4L2_BUF_TYPE_VIDEO_CAPTURE_MPLANE], ret);
-+		return -1;
-+	}
-+
-+//	dbg("  Queued buffer on %s queue with index %d",
-+//	    dbg_type[type==V4L2_BUF_TYPE_VIDEO_CAPTURE_MPLANE], buf.index);
-+
-+	return 0;
-+}
-+
-+int video_queue_buf_out(struct instance *i, int n, int length)
-+{
-+	struct video *vid = &i->video;
-+
-+	if (n >= vid->out_buf_cnt) {
-+		err("Tried to queue a non exisiting buffer");
-+		return -1;
-+	}
-+
-+	return video_queue_buf(i, n, length, 0,
-+			       V4L2_BUF_TYPE_VIDEO_OUTPUT_MPLANE, OUT_PLANES);
-+}
-+
-+int video_queue_buf_cap(struct instance *i, int n)
-+{
-+	struct video *vid = &i->video;
-+
-+	if (n >= vid->cap_buf_cnt) {
-+		err("Tried to queue a non exisiting buffer");
-+		return -1;
-+	}
-+
-+	return video_queue_buf(i, n, vid->cap_buf_size[0], vid->cap_buf_size[1],
-+			       V4L2_BUF_TYPE_VIDEO_CAPTURE_MPLANE, CAP_PLANES);
-+}
-+
-+static int video_dequeue_buf(struct instance *i, struct v4l2_buffer *buf)
-+{
-+	struct video *vid = &i->video;
-+	int ret;
-+
-+	ret = ioctl(vid->fd, VIDIOC_DQBUF, buf);
-+	if (ret < 0) {
-+		err("Failed to dequeue buffer (%d)", -errno);
-+		return -errno;
-+	}
-+
-+//	dbg("Dequeued buffer on %s queue with index %d (flags:%x, bytesused:%d)",
-+//	    dbg_type[buf->type == V4L2_BUF_TYPE_VIDEO_CAPTURE_MPLANE],
-+//	    buf->index, buf->flags, buf->m.planes[0].bytesused);
-+
-+	return 0;
-+}
-+
-+int video_dequeue_output(struct instance *i, int *n)
-+{
-+	struct v4l2_buffer buf;
-+	struct v4l2_plane planes[OUT_PLANES];
-+	int ret;
-+
-+	memzero(buf);
-+	buf.type = V4L2_BUF_TYPE_VIDEO_OUTPUT_MPLANE;
-+	buf.memory = V4L2_MEMORY_MMAP;
-+	buf.m.planes = planes;
-+	buf.length = OUT_PLANES;
-+
-+	ret = video_dequeue_buf(i, &buf);
-+	if (ret < 0)
-+		return ret;
-+
-+	*n = buf.index;
-+
-+	return 0;
-+}
-+
-+int video_dequeue_capture(struct instance *i, int *n, int *finished,
-+			  unsigned int *bytesused)
-+{
-+	struct v4l2_buffer buf;
-+	struct v4l2_plane planes[CAP_PLANES];
-+
-+	memzero(buf);
-+	buf.type = V4L2_BUF_TYPE_VIDEO_CAPTURE_MPLANE;
-+	buf.memory = V4L2_MEMORY_MMAP;
-+	buf.m.planes = planes;
-+	buf.length = CAP_PLANES;
-+
-+	if (video_dequeue_buf(i, &buf))
-+		return -1;
-+
-+	*finished = 0;
-+
-+	if (buf.flags & V4L2_QCOM_BUF_FLAG_EOS ||
-+	    buf.m.planes[0].bytesused == 0)
-+		*finished = 1;
-+
-+	*bytesused = buf.m.planes[0].bytesused;
-+	*n = buf.index;
-+
-+	return 0;
-+}
-+
-+int video_stream(struct instance *i, enum v4l2_buf_type type, int status)
-+{
-+	struct video *vid = &i->video;
-+	int ret;
-+
-+	ret = ioctl(vid->fd, status, &type);
-+	if (ret) {
-+		err("Failed to change streaming (type=%s, status=%s)",
-+		    dbg_type[type == V4L2_BUF_TYPE_VIDEO_CAPTURE_MPLANE],
-+		    dbg_status[status == VIDIOC_STREAMOFF]);
-+		return -1;
-+	}
-+
-+	dbg("Stream %s on %s queue", dbg_status[status==VIDIOC_STREAMOFF],
-+	    dbg_type[type == V4L2_BUF_TYPE_VIDEO_CAPTURE_MPLANE]);
-+
-+	return 0;
-+}
-+
-+int video_stop(struct instance *i)
-+{
-+	struct video *vid = &i->video;
-+	struct v4l2_requestbuffers reqbuf;
-+	struct v4l2_decoder_cmd dec;
-+	int ret;
-+
-+	memzero(dec);
-+	dec.cmd = V4L2_DEC_CMD_STOP;
-+	ret = ioctl(vid->fd, VIDIOC_DECODER_CMD, &dec);
-+	if (ret < 0) {
-+		err("DECODER_CMD failed (%s)", strerror(errno));
-+		return -1;
-+	}
-+
-+	/* HACK: streamoff failing, so bail out of here */
-+	return 0;
-+
-+	memzero(reqbuf);
-+	reqbuf.memory = V4L2_MEMORY_MMAP;
-+	reqbuf.type = V4L2_BUF_TYPE_VIDEO_CAPTURE_MPLANE;
-+
-+	ret = ioctl(vid->fd, VIDIOC_REQBUFS, &reqbuf);
-+	if (ret < 0) {
-+		err("REQBUFS with count=0 on CAPTURE queue failed (%s)",
-+		    strerror(errno));
-+		return -1;
-+	}
-+
-+	memzero(reqbuf);
-+	reqbuf.memory = V4L2_MEMORY_MMAP;
-+	reqbuf.type = V4L2_BUF_TYPE_VIDEO_OUTPUT_MPLANE;
-+
-+	ret = ioctl(vid->fd, VIDIOC_REQBUFS, &reqbuf);
-+	if (ret < 0) {
-+		err("REQBUFS with count=0 on OUTPUT queue failed (%s)",
-+		    strerror(errno));
-+		return -1;
-+	}
-+
-+	ret = video_stream(i, V4L2_BUF_TYPE_VIDEO_CAPTURE_MPLANE,
-+			   VIDIOC_STREAMOFF);
-+	if (ret < 0)
-+		err("STREAMOFF CAPTURE queue failed (%s)", strerror(errno));
-+
-+	ret = video_stream(i, V4L2_BUF_TYPE_VIDEO_OUTPUT_MPLANE,
-+			   VIDIOC_STREAMOFF);
-+	if (ret < 0)
-+		err("STREAMOFF OUTPUT queue failed (%s)", strerror(errno));
-+
-+	return 0;
-+}
-+
-+int video_setup_capture(struct instance *i, int extra_buf, int w, int h)
-+{
-+	struct video *vid = &i->video;
-+	struct v4l2_format fmt;
-+	struct v4l2_requestbuffers reqbuf;
-+	struct v4l2_buffer buf;
-+	struct v4l2_plane planes[CAP_PLANES];
-+	int ret;
-+	int n;
-+
-+	fmt.type = V4L2_BUF_TYPE_VIDEO_CAPTURE_MPLANE;
-+	fmt.fmt.pix_mp.height = h;
-+	fmt.fmt.pix_mp.width = w;
-+
-+printf("video_setup_capture: %dx%d\n", w, h);
-+	if (i->out_format == NULL) {
-+		printf("Output format not specified, use defalt NV12.\n");
-+		fmt.fmt.pix_mp.pixelformat = V4L2_PIX_FMT_NV12;
-+	}
-+	else if (strcmp(i->out_format, "argb888") == 0) {
-+		printf("Specified output format ARGB888.\n");
-+		fmt.fmt.pix_mp.pixelformat = V4L2_PIX_FMT_ARGB32;
-+	}
-+	else if (strcmp(i->out_format, "rgb565") == 0) {
-+		printf("Specified output format RGB565.\n");
-+		fmt.fmt.pix_mp.pixelformat = V4L2_PIX_FMT_RGB565;
-+	}
-+	else {
-+		printf("Unrecognized output format, use defalt NV12.\n");
-+		fmt.fmt.pix_mp.pixelformat = V4L2_PIX_FMT_NV12;
-+	}
-+
-+	ret = ioctl(vid->fd, VIDIOC_S_FMT, &fmt);
-+	if (ret) {
-+		err("Failed to set format (%dx%d)", w, h);
-+		return -1;
-+	}
-+
-+	vid->cap_w = fmt.fmt.pix_mp.width;
-+	vid->cap_h = fmt.fmt.pix_mp.height;
-+
-+	vid->cap_buf_size[0] = fmt.fmt.pix_mp.plane_fmt[0].sizeimage;
-+	vid->cap_buf_size[1] = fmt.fmt.pix_mp.plane_fmt[1].sizeimage;
-+
-+	vid->cap_buf_cnt = 4 + extra_buf;
-+	vid->cap_buf_cnt_min = 4;
-+	vid->cap_buf_queued = 0;
-+
-+	dbg("video decoder buffer parameters: %dx%d plane[0]=%d plane[1]=%d",
-+	    fmt.fmt.pix_mp.width, fmt.fmt.pix_mp.height,
-+	    vid->cap_buf_size[0], vid->cap_buf_size[1]);
-+
-+	memzero(reqbuf);
-+	reqbuf.count = vid->cap_buf_cnt;
-+	reqbuf.type = V4L2_BUF_TYPE_VIDEO_CAPTURE_MPLANE;
-+	reqbuf.memory = V4L2_MEMORY_MMAP;
-+
-+	ret = ioctl(vid->fd, VIDIOC_REQBUFS, &reqbuf);
-+	if (ret != 0) {
-+		err("REQBUFS failed on CAPTURE queue (%s)", strerror(errno));
-+		return -1;
-+	}
-+
-+	dbg("Number of CAPTURE buffers is %d (requested %d, extra %d)",
-+	    reqbuf.count, vid->cap_buf_cnt, extra_buf);
-+
-+	vid->cap_buf_cnt = reqbuf.count;
-+
-+	for (n = 0; n < vid->cap_buf_cnt; n++) {
-+		memzero(buf);
-+		memset(planes, 0, sizeof(planes));
-+		buf.type = V4L2_BUF_TYPE_VIDEO_CAPTURE_MPLANE;
-+		buf.memory = V4L2_MEMORY_MMAP;
-+		buf.index = n;
-+		buf.m.planes = planes;
-+		buf.length = CAP_PLANES;
-+
-+		ret = ioctl(vid->fd, VIDIOC_QUERYBUF, &buf);
-+		if (ret != 0) {
-+			err("QUERYBUF failed on CAPTURE queue (%s)",
-+			    strerror(errno));
-+			return -1;
-+		}
-+
-+		vid->cap_buf_off[n][0] = buf.m.planes[0].m.mem_offset;
-+
-+		vid->cap_buf_addr[n][0] = mmap(NULL, buf.m.planes[0].length,
-+					       PROT_READ | PROT_WRITE,
-+					       MAP_SHARED,
-+					       vid->fd,
-+					       buf.m.planes[0].m.mem_offset);
-+
-+		if (vid->cap_buf_addr[n][0] == MAP_FAILED) {
-+			err("Failed to MMAP CAPTURE buffer on plane0");
-+			return -1;
-+		}
-+
-+		vid->cap_buf_size[0] = buf.m.planes[0].length;
-+	}
-+
-+	dbg("Succesfully mmapped %d CAPTURE buffers", n);
-+
-+	return 0;
-+}
-+
-+int video_setup_output(struct instance *i, unsigned long codec,
-+		       unsigned int size, int count)
-+{
-+	struct video *vid = &i->video;
-+	struct v4l2_format fmt;
-+	struct v4l2_requestbuffers reqbuf;
-+	struct v4l2_buffer buf;
-+	struct v4l2_plane planes[OUT_PLANES];
-+	int ret;
-+	int n;
-+
-+	memzero(fmt);
-+	fmt.type = V4L2_BUF_TYPE_VIDEO_OUTPUT_MPLANE;
-+	fmt.fmt.pix_mp.width = MAX_H264_WIDTH; // i->width;
-+	fmt.fmt.pix_mp.height = MAX_H264_HEIGHT; //i->height;
-+	fmt.fmt.pix_mp.pixelformat = codec;
-+
-+	ret = ioctl(vid->fd, VIDIOC_S_FMT, &fmt);
-+	if (ret) {
-+		err("Failed to set format on OUTPUT (%s)", strerror(errno));
-+		return -1;
-+	}
-+
-+	dbg("Setup decoding OUTPUT buffer size=%u (requested=%u)",
-+	    fmt.fmt.pix_mp.plane_fmt[0].sizeimage, size);
-+
-+	vid->out_buf_size = fmt.fmt.pix_mp.plane_fmt[0].sizeimage;
-+
-+	memzero(reqbuf);
-+	reqbuf.count = count;
-+	reqbuf.type = V4L2_BUF_TYPE_VIDEO_OUTPUT_MPLANE;
-+	reqbuf.memory = V4L2_MEMORY_MMAP;
-+
-+	ret = ioctl(vid->fd, VIDIOC_REQBUFS, &reqbuf);
-+	if (ret) {
-+		err("REQBUFS failed on OUTPUT queue");
-+		return -1;
-+	}
-+
-+	vid->out_buf_cnt = reqbuf.count;
-+
-+	dbg("Number of video decoder OUTPUT buffers is %d (requested %d)",
-+	    vid->out_buf_cnt, count);
-+
-+	for (n = 0; n < vid->out_buf_cnt; n++) {
-+		memzero(buf);
-+		memset(planes, 0, sizeof(planes));
-+		buf.type = V4L2_BUF_TYPE_VIDEO_OUTPUT_MPLANE;
-+		buf.memory = V4L2_MEMORY_MMAP;
-+		buf.index = n;
-+		buf.m.planes = planes;
-+		buf.length = OUT_PLANES;
-+
-+		ret = ioctl(vid->fd, VIDIOC_QUERYBUF, &buf);
-+		if (ret != 0) {
-+			err("QUERYBUF failed on OUTPUT buffer");
-+			return -1;
-+		}
-+
-+		vid->out_buf_off[n] = buf.m.planes[0].m.mem_offset;
-+		vid->out_buf_size = buf.m.planes[0].length;
-+
-+		vid->out_buf_addr[n] = mmap(NULL, buf.m.planes[0].length,
-+					    PROT_READ | PROT_WRITE, MAP_SHARED,
-+					    vid->fd,
-+					    buf.m.planes[0].m.mem_offset);
-+
-+		if (vid->out_buf_addr[n] == MAP_FAILED) {
-+			err("Failed to MMAP OUTPUT buffer");
-+			return -1;
-+		}
-+
-+		vid->out_buf_flag[n] = 0;
-+	}
-+
-+	dbg("Succesfully mmapped %d OUTPUT buffers", n);
-+
-+	return 0;
-+}
-+
+diff --git a/display.c b/display.c
+deleted file mode 100644
+index bae4e35..0000000
+--- a/display.c
++++ /dev/null
+@@ -1,985 +0,0 @@
+-#include <stdlib.h>
+-#include <stdbool.h>
+-#include <stdint.h>
+-#include <string.h>
+-#include <assert.h>
+-
+-#include <wayland-client.h>
+-
+-#include "common.h"
+-#include "scaler-client-protocol.h"
+-#include "viewporter-client-protocol.h"
+-#include "presentation-time-client-protocol.h"
+-#include "xdg-shell-unstable-v6-client-protocol.h"
+-#include "linux-dmabuf-unstable-v1-client-protocol.h"
+-#include "linux-dmabuf-client-protocol.h"
+-
+-#include "video.h"
+-
+-#define DBG_TAG "  disp"
+-
+-struct display {
+-	struct wl_display *display;
+-	struct wl_registry *registry;
+-	struct wl_compositor *compositor;
+-	struct wl_seat *seat;
+-	struct wl_keyboard *keyboard;
+-	struct wl_shell *wl_shell;
+-	struct zxdg_shell_v6 *xdg_shell;
+-	struct wl_scaler *scaler;
+-	struct wp_viewporter *viewporter;
+-	struct wp_presentation *presentation;
+-	struct zlinux_dmabuf *dmabuf_legacy;
+-	struct zwp_linux_dmabuf_v1 *dmabuf;
+-	uint32_t drm_formats[32];
+-	int compositor_version;
+-	int seat_version;
+-	int drm_format_count;
+-	int running;
+-
+-	struct window *keyboard_focus;
+-	struct wl_list window_list;
+-};
+-
+-struct window {
+-	struct wl_list link;
+-
+-	struct display *display;
+-	struct wl_surface *surface;
+-	struct wl_viewport *legacy_viewport;
+-	struct wp_viewport *viewport;
+-	struct wl_shell_surface *shell_surface;
+-	struct zxdg_surface_v6 *xdg_surface;
+-	struct zxdg_toplevel_v6 *xdg_toplevel;
+-	struct fb *buffer;
+-	int width, height;
+-	int saved_width, saved_height;
+-	int ar_x, ar_y;
+-	bool size_set;
+-	bool saved_size_set;
+-	bool configured;
+-	bool fullscreen;
+-
+-	window_key_cb_t key_cb;
+-	void *user_data;
+-};
+-
+-void
+-fb_destroy(struct fb *fb)
+-{
+-	list_del(&fb->link);
+-	if (fb->sync_callback)
+-		wl_callback_destroy(fb->sync_callback);
+-	if (fb->presentation_feedback)
+-		wp_presentation_feedback_destroy(fb->presentation_feedback);
+-	if (fb->buffer)
+-		wl_buffer_destroy(fb->buffer);
+-	free(fb);
+-}
+-
+-void
+-fb_apply_extradata(struct fb *fb, const struct msm_vidc_extradata_header *hdr)
+-{
+-	struct msm_vidc_aspect_ratio_payload *ar;
+-	struct msm_vidc_output_crop_payload *crop;
+-
+-	if ((ar = extradata_header_find(hdr, MSM_VIDC_EXTRADATA_ASPECT_RATIO))) {
+-		fb->ar_x = ar->aspect_width;
+-		fb->ar_y = ar->aspect_height;
+-	} else {
+-		fb->ar_x = 1;
+-		fb->ar_y = 1;
+-	}
+-
+-	if ((crop = extradata_header_find(hdr, MSM_VIDC_EXTRADATA_OUTPUT_CROP))) {
+-		fb->crop_x = crop->left;
+-		fb->crop_y = crop->top;
+-		fb->crop_w = crop->display_width;
+-		fb->crop_h = crop->display_height;
+-	} else {
+-		fb->crop_x = 0;
+-		fb->crop_y = 0;
+-		fb->crop_w = 0;
+-		fb->crop_y = 0;
+-	}
+-}
+-
+-void
+-window_set_user_data(struct window *w, void *data)
+-{
+-	w->user_data = data;
+-}
+-
+-void *
+-window_get_user_data(struct window *w)
+-{
+-	return w->user_data;
+-}
+-
+-void
+-window_set_key_callback(struct window *w, window_key_cb_t callback)
+-{
+-	w->key_cb = callback;
+-}
+-
+-static void
+-handle_sync_output(void *data, struct wp_presentation_feedback *feedback,
+-		   struct wl_output *output)
+-{
+-}
+-
+-static void
+-handle_presented(void *data, struct wp_presentation_feedback *feedback,
+-		 uint32_t tv_sec_hi, uint32_t tv_sec_lo, uint32_t tv_nsec,
+-		 uint32_t refresh, uint32_t seq_hi, uint32_t seq_lo,
+-		 uint32_t flags)
+-{
+-	struct fb *fb = data;
+-	uint64_t tv_sec = (uint64_t)tv_sec_hi << 32 | tv_sec_lo;
+-
+-	dbg("buffer %d displayed at %lu.%04u, %u.%04us till next refresh",
+-	    fb->index, tv_sec, tv_nsec / 1000000, refresh / 1000000000,
+-	    refresh / 1000000);
+-
+-	wp_presentation_feedback_destroy(feedback);
+-	fb->presentation_feedback = NULL;
+-}
+-
+-static void
+-handle_discarded(void *data, struct wp_presentation_feedback *feedback)
+-{
+-	struct fb *fb = data;
+-
+-	dbg("buffer %d discarded", fb->index);
+-
+-	wp_presentation_feedback_destroy(feedback);
+-	fb->presentation_feedback = NULL;
+-}
+-
+-static const struct wp_presentation_feedback_listener presentation_feedback_listener = {
+-	handle_sync_output,
+-	handle_presented,
+-	handle_discarded,
+-};
+-
+-static void
+-sync_callback(void * data, struct wl_callback * callback, uint32_t time)
+-{
+-	struct fb *fb = data;
+-
+-	wl_callback_destroy(callback);
+-	if (fb)
+-		fb->sync_callback = NULL;
+-}
+-
+-static const struct wl_callback_listener sync_listener = {
+-	sync_callback
+-};
+-
+-static void
+-window_commit(struct window *w)
+-{
+-	struct display *display = w->display;
+-	struct fb *fb = w->buffer;
+-	struct wl_region *region;
+-
+-	region = wl_compositor_create_region(display->compositor);
+-	wl_region_add(region, 0, 0, INT_MAX, INT_MAX);
+-	wl_surface_set_opaque_region(w->surface, region);
+-	wl_region_destroy(region);
+-
+-	wl_surface_attach(w->surface, fb ? fb->buffer : NULL, 0, 0);
+-	wl_surface_damage(w->surface, 0, 0, INT_MAX, INT_MAX);
+-
+-	if (fb && display->presentation) {
+-		if (fb->presentation_feedback)
+-			wp_presentation_feedback_destroy(fb->presentation_feedback);
+-
+-		fb->presentation_feedback =
+-			wp_presentation_feedback(display->presentation,
+-						 w->surface);
+-
+-		wp_presentation_feedback_add_listener(
+-			fb->presentation_feedback,
+-			&presentation_feedback_listener, fb);
+-	} else if (fb) {
+-		if (fb->sync_callback)
+-			wl_callback_destroy(fb->sync_callback);
+-		fb->sync_callback = wl_display_sync(display->display);
+-		wl_callback_add_listener(fb->sync_callback, &sync_listener, fb);
+-	}
+-
+-	if (fb)
+-		fb->busy = 1;
+-
+-	wl_surface_commit(w->surface);
+-}
+-
+-static int
+-window_recenter(struct window *w)
+-{
+-	struct fb *fb = w->buffer;
+-	int video_w, video_h;
+-	int output_w, output_h;
+-	int ar_x, ar_y;
+-	int src_x, src_y, src_w, src_h;
+-
+-	if (!fb || (!w->viewport && !w->legacy_viewport))
+-		return 0;
+-
+-	if (fb->crop_w != 0 && fb->crop_h != 0) {
+-		src_x = fb->crop_x;
+-		src_y = fb->crop_y;
+-		src_w = fb->crop_w;
+-		src_h = fb->crop_h;
+-	} else {
+-		src_x = 0;
+-		src_y = 0;
+-		src_w = fb->width;
+-		src_h = fb->height;
+-	}
+-
+-	ar_x = w->ar_x * fb->ar_x;
+-	ar_y = w->ar_y * fb->ar_y;
+-
+-	if (src_w * ar_y > src_h * ar_x) {
+-		video_w = src_w * ar_x / ar_y;
+-		video_h = src_h;
+-	} else {
+-		video_w = src_w;
+-		video_h = src_h * ar_y / ar_x;
+-	}
+-
+-	if (!w->size_set) {
+-		output_w = video_w;
+-		output_h = video_h;
+-	} else if (video_w * w->height > video_h * w->width) {
+-		output_w = w->width;
+-		output_h = w->width * video_h / video_w;
+-	} else {
+-		output_w = w->height * video_w / video_h;
+-		output_h = w->height;
+-	}
+-
+-	dbg("fb %dx%d ar %d:%d src %dx%d%+d%+d dst %dx%d",
+-	    fb->width, fb->height, ar_x, ar_y,
+-	    (int)src_w, (int)src_h, (int)src_x, (int)src_y,
+-	    output_w, output_h);
+-
+-	if (w->viewport) {
+-		wp_viewport_set_destination(w->viewport, output_w, output_h);
+-		wp_viewport_set_source(w->viewport,
+-				       wl_fixed_from_int(src_x),
+-				       wl_fixed_from_int(src_y),
+-				       wl_fixed_from_int(src_w),
+-				       wl_fixed_from_int(src_h));
+-	} else {
+-		wl_viewport_set(w->legacy_viewport,
+-				wl_fixed_from_int(src_x),
+-				wl_fixed_from_int(src_y),
+-				wl_fixed_from_int(src_w),
+-				wl_fixed_from_int(src_h),
+-				output_w, output_h);
+-	}
+-
+-	return 1;
+-}
+-
+-void
+-window_set_aspect_ratio(struct window *w, int ar_x, int ar_y)
+-{
+-	if (ar_x == 0 || ar_y == 0)
+-		return;
+-
+-	w->ar_x = ar_x;
+-	w->ar_y = ar_y;
+-
+-	if (w->configured) {
+-		window_recenter(w);
+-		window_commit(w);
+-	}
+-}
+-
+-void
+-window_toggle_fullscreen(struct window *w)
+-{
+-	if (w->xdg_toplevel) {
+-		if (w->fullscreen)
+-			zxdg_toplevel_v6_unset_fullscreen(w->xdg_toplevel);
+-		else
+-			zxdg_toplevel_v6_set_fullscreen(w->xdg_toplevel, NULL);
+-	} else if (w->shell_surface) {
+-		if (w->fullscreen)
+-			wl_shell_surface_set_toplevel(w->shell_surface);
+-		else
+-			wl_shell_surface_set_fullscreen(w->shell_surface,
+-							WL_SHELL_SURFACE_FULLSCREEN_METHOD_SCALE,
+-							0, NULL);
+-	}
+-}
+-
+-static void
+-xdg_toplevel_handle_configure(void *data, struct zxdg_toplevel_v6 *xdg_toplevel,
+-			      int32_t width, int32_t height,
+-			      struct wl_array *states)
+-{
+-	struct window *w = data;
+-	uint32_t *state_p;
+-	bool fullscreen = false;
+-
+-	wl_array_for_each(state_p, states) {
+-		switch (*state_p) {
+-		case ZXDG_TOPLEVEL_V6_STATE_FULLSCREEN:
+-			fullscreen = true;
+-			break;
+-		default:
+-			break;
+-		}
+-	}
+-
+-	if (fullscreen != w->fullscreen) {
+-		if (fullscreen) {
+-			w->saved_width = w->width;
+-			w->saved_height = w->height;
+-			w->saved_size_set = w->size_set;
+-		} else {
+-			w->width = w->saved_width;
+-			w->height = w->saved_height;
+-			w->size_set = w->saved_size_set;
+-		}
+-		w->fullscreen = fullscreen;
+-	}
+-
+-	if (width <= 0 || height <= 0)
+-		return;
+-
+-	if (w->width != width || w->height != height) {
+-		w->width = width;
+-		w->height = height;
+-		w->size_set = true;
+-	}
+-}
+-
+-static void
+-xdg_toplevel_handle_close(void *data, struct zxdg_toplevel_v6 *xdg_toplevel)
+-{
+-	struct window *w = data;
+-	struct display *d = w->display;
+-
+-	d->running = 0;
+-}
+-
+-static const struct zxdg_toplevel_v6_listener xdg_toplevel_listener = {
+-	xdg_toplevel_handle_configure,
+-	xdg_toplevel_handle_close,
+-};
+-
+-static void
+-xdg_surface_handle_configure(void *data, struct zxdg_surface_v6 *xdg_surface,
+-			     uint32_t serial)
+-{
+-	struct window *w = data;
+-
+-	zxdg_surface_v6_ack_configure(xdg_surface, serial);
+-
+-	w->configured = true;
+-	if (window_recenter(w))
+-		window_commit(w);
+-}
+-
+-static const struct zxdg_surface_v6_listener xdg_surface_listener = {
+-	xdg_surface_handle_configure,
+-};
+-
+-
+-static void
+-shell_surface_handle_ping(void *data, struct wl_shell_surface *shell_surface,
+-			  uint32_t serial)
+-{
+-	wl_shell_surface_pong(shell_surface, serial);
+-}
+-
+-static void
+-shell_surface_handle_configure(void *data, struct wl_shell_surface *shell_surface,
+-			       uint32_t edges, int32_t width, int32_t height)
+-{
+-	struct window *w = data;
+-
+-	if (w->width == 0 || w->height == 0)
+-		return;
+-
+-	w->width = width;
+-	w->height = height;
+-	w->size_set = true;
+-	w->configured = true;
+-
+-	if (window_recenter(w))
+-		window_commit(w);
+-}
+-
+-static void
+-shell_surface_handle_popup_done(void *data, struct wl_shell_surface *shell_surface)
+-{
+-}
+-
+-static const struct wl_shell_surface_listener shell_surface_listener = {
+-	shell_surface_handle_ping,
+-	shell_surface_handle_configure,
+-	shell_surface_handle_popup_done
+-};
+-
+-struct window *
+-display_create_window(struct display *display)
+-{
+-	struct window *window;
+-
+-	window = calloc(1, sizeof *window);
+-	if (!window)
+-		return NULL;
+-
+-	window->display = display;
+-	window->surface = wl_compositor_create_surface(display->compositor);
+-	window->ar_x = 1;
+-	window->ar_y = 1;
+-
+-	if (display->xdg_shell) {
+-		window->xdg_surface =
+-			zxdg_shell_v6_get_xdg_surface(display->xdg_shell,
+-						      window->surface);
+-
+-		zxdg_surface_v6_add_listener(window->xdg_surface,
+-					     &xdg_surface_listener, window);
+-
+-		window->xdg_toplevel =
+-			zxdg_surface_v6_get_toplevel(window->xdg_surface);
+-
+-		zxdg_toplevel_v6_add_listener(window->xdg_toplevel,
+-					      &xdg_toplevel_listener, window);
+-		zxdg_toplevel_v6_set_title(window->xdg_toplevel, "v4l-decode");
+-
+-		wl_surface_commit(window->surface);
+-	} else if (display->wl_shell) {
+-		window->shell_surface =
+-			wl_shell_get_shell_surface(display->wl_shell,
+-						   window->surface);
+-
+-		wl_shell_surface_add_listener(window->shell_surface,
+-					      &shell_surface_listener, window);
+-
+-		wl_shell_surface_set_title(window->shell_surface, "v4l-decode");
+-		wl_shell_surface_set_toplevel(window->shell_surface);
+-
+-		window->configured = true;
+-	}
+-
+-	if (display->viewporter) {
+-		window->viewport =
+-			wp_viewporter_get_viewport(display->viewporter,
+-						   window->surface);
+-	} else if (display->scaler) {
+-		window->legacy_viewport =
+-			wl_scaler_get_viewport(display->scaler,
+-					       window->surface);
+-	}
+-
+-	wl_list_insert(&display->window_list, &window->link);
+-
+-	return window;
+-}
+-
+-static struct window *
+-display_find_window_by_surface(struct display *display,
+-			       struct wl_surface *surface)
+-{
+-	struct window *window;
+-
+-	wl_list_for_each(window, &display->window_list, link) {
+-		if (window->surface == surface)
+-			return window;
+-	}
+-
+-	return NULL;
+-}
+-
+-void
+-window_destroy(struct window *window)
+-{
+-	wl_list_remove(&window->link);
+-
+-	if (window->xdg_toplevel)
+-		zxdg_toplevel_v6_destroy(window->xdg_toplevel);
+-	if (window->xdg_surface)
+-		zxdg_surface_v6_destroy(window->xdg_surface);
+-	if (window->shell_surface)
+-		wl_shell_surface_destroy(window->shell_surface);
+-	if (window->viewport)
+-		wp_viewport_destroy(window->viewport);
+-	if (window->legacy_viewport)
+-		wl_viewport_destroy(window->legacy_viewport);
+-
+-	wl_surface_destroy(window->surface);
+-
+-	free(window);
+-}
+-
+-static void
+-buffer_release(void *data, struct wl_buffer *buffer)
+-{
+-	struct fb *fb = data;
+-
+-	fb->busy = 0;
+-
+-	dbg("buffer %d released", fb->index);
+-
+-	if (fb->release_cb)
+-		fb->release_cb(fb, fb->cb_data);
+-}
+-
+-static const struct wl_buffer_listener buffer_listener = {
+-	buffer_release
+-};
+-
+-static void
+-create_succeeded(void *data,
+-		 struct zwp_linux_buffer_params_v1 *params,
+-		 struct wl_buffer *new_buffer)
+-{
+-	struct fb *fb = data;
+-
+-	fb->buffer = new_buffer;
+-	wl_buffer_add_listener(fb->buffer, &buffer_listener, fb);
+-
+-	zwp_linux_buffer_params_v1_destroy(params);
+-}
+-
+-static void
+-create_failed(void *data, struct zwp_linux_buffer_params_v1 *params)
+-{
+-	struct fb *fb = data;
+-
+-	fb->buffer = NULL;
+-
+-	zwp_linux_buffer_params_v1_destroy(params);
+-
+-	err("zwp_linux_buffer_params.create failed");
+-
+-	fb->window->display->running = 0;
+-}
+-
+-static const struct zwp_linux_buffer_params_v1_listener params_listener = {
+-	create_succeeded,
+-	create_failed
+-};
+-
+-static void
+-dmabuf_legacy_create_succeeded(void *data,
+-			       struct zlinux_buffer_params *params,
+-			       struct wl_buffer *new_buffer)
+-{
+-	struct fb *fb = data;
+-
+-	fb->buffer = new_buffer;
+-	wl_buffer_add_listener(fb->buffer, &buffer_listener, fb);
+-
+-	zlinux_buffer_params_destroy(params);
+-}
+-
+-static void
+-dmabuf_legacy_create_failed(void *data, struct zlinux_buffer_params *params)
+-{
+-	struct fb *fb = data;
+-
+-	fb->buffer = NULL;
+-
+-	zlinux_buffer_params_destroy(params);
+-
+-	err("zlinux_buffer_params.create failed");
+-
+-	fb->window->display->running = 0;
+-}
+-
+-static const struct zlinux_buffer_params_listener dmabuf_legacy_params_listener = {
+-	dmabuf_legacy_create_succeeded,
+-	dmabuf_legacy_create_failed
+-};
+-
+-static int
+-format_is_supported(struct display *display, uint32_t format)
+-{
+-	int i;
+-
+-	for (i = 0; i < display->drm_format_count; i++) {
+-		if (display->drm_formats[i] == format)
+-			return 1;
+-	}
+-
+-	return 0;
+-}
+-
+-struct fb *
+-window_create_buffer(struct window *window, int group, int index, int fd,
+-		     uint32_t format, int width, int height, int n_planes,
+-		     const int *plane_offsets, const int *plane_strides)
+-{
+-	struct display *display = window->display;
+-	struct fb *fb;
+-
+-#if 0
+-	if (!format_is_supported(display, format)) {
+-		err("unsupported display format");
+-		return NULL;
+-	}
+-#endif
+-
+-	if (n_planes <= 0 || n_planes > FB_MAX_PLANES) {
+-		err("invalid number of planes");
+-		return NULL;
+-	}
+-
+-	fb = calloc(1, sizeof *fb);
+-	fb->group = group;
+-	fb->index = index;
+-	fb->fd = fd;
+-	fb->format = format;
+-	fb->width = width;
+-	fb->height = height;
+-	fb->window = window;
+-	fb->ar_x = 1;
+-	fb->ar_y = 1;
+-
+-	fb->n_planes = n_planes;
+-	memcpy(fb->offsets, plane_offsets, n_planes * sizeof (int));
+-	memcpy(fb->strides, plane_strides, n_planes * sizeof (int));
+-
+-	INIT_LIST_HEAD(&fb->link);
+-
+-	if (display->dmabuf) {
+-		struct zwp_linux_buffer_params_v1 *params =
+-			zwp_linux_dmabuf_v1_create_params(display->dmabuf);
+-
+-		for (int i = 0; i < fb->n_planes; i++) {
+-			zwp_linux_buffer_params_v1_add(params, fb->fd, i,
+-						       fb->offsets[i],
+-						       fb->strides[i], 0, 0);
+-		}
+-
+-		zwp_linux_buffer_params_v1_add_listener(params, &params_listener, fb);
+-		zwp_linux_buffer_params_v1_create(params, fb->width, fb->height,
+-						  fb->format, 0);
+-	} else {
+-		struct zlinux_buffer_params *params =
+-			zlinux_dmabuf_create_params(display->dmabuf_legacy);
+-
+-		for (int i = 0; i < fb->n_planes; i++) {
+-			zlinux_buffer_params_add(params, fb->fd, i,
+-						 fb->offsets[i],
+-						 fb->strides[i], 0, 0);
+-		}
+-
+-		zlinux_buffer_params_add_listener(params, &dmabuf_legacy_params_listener, fb);
+-		zlinux_buffer_params_create(params, fb->width, fb->height,
+-					    fb->format, 0);
+-	}
+-
+-	wl_display_roundtrip(display->display);
+-
+-	if (!fb->buffer) {
+-		fb_destroy(fb);
+-		return NULL;
+-	}
+-
+-	return fb;
+-}
+-
+-void
+-window_show_buffer(struct window *window, struct fb *fb,
+-		   fb_release_cb_t release_cb, void *cb_data)
+-{
+-	fb->release_cb = release_cb;
+-	fb->cb_data = cb_data;
+-
+-	dbg("present buffer %d", fb->index);
+-
+-	window->buffer = fb;
+-
+-	if (window->configured) {
+-		window_recenter(window);
+-		window_commit(window);
+-	}
+-}
+-
+-static void
+-dmabuf_format(void *data, struct zwp_linux_dmabuf_v1 *zwp_linux_dmabuf,
+-	      uint32_t format)
+-{
+-	struct display *d = data;
+-
+-	assert(d->drm_format_count <= 32);
+-	d->drm_formats[d->drm_format_count++] = format;
+-}
+-
+-static const struct zwp_linux_dmabuf_v1_listener dmabuf_listener = {
+-	dmabuf_format
+-};
+-
+-static void
+-dmabuf_legacy_format(void *data, struct zlinux_dmabuf *zlinux_dmabuf,
+-		     uint32_t format)
+-{
+-	struct display *d = data;
+-
+-	assert(d->drm_format_count <= 32);
+-	d->drm_formats[d->drm_format_count++] = format;
+-}
+-
+-static const struct zlinux_dmabuf_listener dmabuf_legacy_listener = {
+-	dmabuf_legacy_format
+-};
+-
+-static void
+-xdg_shell_handle_ping(void *data, struct zxdg_shell_v6 *xdg_shell,
+-		      uint32_t serial)
+-{
+-	zxdg_shell_v6_pong(xdg_shell, serial);
+-}
+-
+-static const struct zxdg_shell_v6_listener xdg_shell_listener = {
+-	xdg_shell_handle_ping,
+-};
+-
+-static void
+-keyboard_handle_keymap(void *data, struct wl_keyboard *keyboard,
+-		       uint32_t format, int fd, uint32_t size)
+-{
+-}
+-
+-static void
+-keyboard_handle_enter(void *data, struct wl_keyboard *keyboard,
+-		      uint32_t serial, struct wl_surface *surface,
+-		      struct wl_array *keys)
+-{
+-	struct display *display = data;
+-	struct window *window;
+-
+-	window = display_find_window_by_surface(display, surface);
+-
+-	display->keyboard_focus = window;
+-}
+-
+-static void
+-keyboard_handle_leave(void *data, struct wl_keyboard *keyboard,
+-		      uint32_t serial, struct wl_surface *surface)
+-{
+-	struct display *display = data;
+-
+-	display->keyboard_focus = NULL;
+-}
+-
+-static void
+-keyboard_handle_key(void *data, struct wl_keyboard *keyboard,
+-		    uint32_t serial, uint32_t time, uint32_t key,
+-		    uint32_t state)
+-{
+-	struct display *display = data;
+-	struct window *window = display->keyboard_focus;
+-
+-	if (!window || !window->key_cb)
+-		return;
+-
+-	window->key_cb(window, time, key, state);
+-}
+-
+-static void
+-keyboard_handle_modifiers(void *data, struct wl_keyboard *keyboard,
+-			  uint32_t serial, uint32_t mods_depressed,
+-			  uint32_t mods_latched, uint32_t mods_locked,
+-			  uint32_t group)
+-{
+-}
+-
+-static void
+-keyboard_handle_repeat_info(void *data, struct wl_keyboard *keyboard,
+-			    int32_t rate, int32_t delay)
+-{
+-}
+-
+-static const struct wl_keyboard_listener keyboard_listener = {
+-	keyboard_handle_keymap,
+-	keyboard_handle_enter,
+-	keyboard_handle_leave,
+-	keyboard_handle_key,
+-	keyboard_handle_modifiers,
+-	keyboard_handle_repeat_info
+-};
+-
+-static void
+-seat_handle_capabilities(void *data, struct wl_seat *seat,
+-			 enum wl_seat_capability caps)
+-{
+-	struct display *d = data;
+-
+-	if ((caps & WL_SEAT_CAPABILITY_KEYBOARD) && !d->keyboard) {
+-		d->keyboard = wl_seat_get_keyboard(seat);
+-		wl_keyboard_add_listener(d->keyboard, &keyboard_listener, d);
+-
+-	} else if (!(caps & WL_SEAT_CAPABILITY_KEYBOARD) && d->keyboard) {
+-		if (d->seat_version >= 3)
+-			wl_keyboard_release(d->keyboard);
+-		else
+-			wl_keyboard_destroy(d->keyboard);
+-		d->keyboard = NULL;
+-	}
+-}
+-
+-static void
+-seat_handle_name(void *data, struct wl_seat *seat, const char *name)
+-{
+-}
+-
+-static const struct wl_seat_listener seat_listener = {
+-	seat_handle_capabilities,
+-	seat_handle_name,
+-};
+-
+-static void
+-registry_handle_global(void *data, struct wl_registry *registry,
+-		       uint32_t id, const char *interface, uint32_t version)
+-{
+-	struct display *d = data;
+-
+-	if (!strcmp(interface, "wl_compositor")) {
+-		d->compositor_version = MIN(version, 4);
+-		d->compositor = wl_registry_bind(registry, id,
+-						 &wl_compositor_interface,
+-						 d->compositor_version);
+-	} else if (!strcmp(interface, "wp_viewporter")) {
+-		d->viewporter = wl_registry_bind(registry, id,
+-						 &wp_viewporter_interface, 1);
+-	} else if (!strcmp(interface, "wl_scaler")) {
+-		d->scaler = wl_registry_bind(registry, id,
+-					     &wl_scaler_interface, 1);
+-	} else if (!strcmp(interface, "wp_presentation")) {
+-		d->presentation = wl_registry_bind(registry, id,
+-						   &wp_presentation_interface,
+-						   1);
+-	} else if (!strcmp(interface, "zxdg_shell_v6")) {
+-		d->xdg_shell = wl_registry_bind(registry, id,
+-						&zxdg_shell_v6_interface, 1);
+-		zxdg_shell_v6_add_listener(d->xdg_shell,
+-					   &xdg_shell_listener, d);
+-	} else if (!strcmp(interface, "wl_shell")) {
+-		d->wl_shell = wl_registry_bind(registry, id,
+-					       &wl_shell_interface, 1);
+-	} else if (!strcmp(interface, "zwp_linux_dmabuf_v1")) {
+-		d->dmabuf = wl_registry_bind(registry, id,
+-					     &zwp_linux_dmabuf_v1_interface, 1);
+-		zwp_linux_dmabuf_v1_add_listener(d->dmabuf, &dmabuf_listener,
+-						 d);
+-	} else if (!strcmp(interface, "zlinux_dmabuf")) {
+-		d->dmabuf_legacy = wl_registry_bind(registry, id,
+-						    &zlinux_dmabuf_interface, 1);
+-		zlinux_dmabuf_add_listener(d->dmabuf_legacy,
+-					   &dmabuf_legacy_listener, d);
+-	} else if (!strcmp(interface, "wl_seat") && !d->seat) {
+-		d->seat_version = MIN(version, 5);
+-		d->seat = wl_registry_bind(registry, id, &wl_seat_interface,
+-					   d->seat_version);
+-		wl_seat_add_listener(d->seat, &seat_listener, d);
+-	}
+-}
+-
+-static void
+-registry_handle_global_remove(void *data, struct wl_registry *registry,
+-			      uint32_t name)
+-{
+-}
+-
+-static const struct wl_registry_listener registry_listener = {
+-	registry_handle_global,
+-	registry_handle_global_remove
+-};
+-
+-void
+-display_destroy(struct display *display)
+-{
+-	if (display->seat) {
+-		seat_handle_capabilities(display, display->seat, 0);
+-		wl_seat_destroy(display->seat);
+-	}
+-
+-	if (display->scaler)
+-		wl_scaler_destroy(display->scaler);
+-	if (display->viewporter)
+-		wp_viewporter_destroy(display->viewporter);
+-	if (display->presentation)
+-		wp_presentation_destroy(display->presentation);
+-	if (display->compositor)
+-		wl_compositor_destroy(display->compositor);
+-	if (display->xdg_shell)
+-		zxdg_shell_v6_destroy(display->xdg_shell);
+-	if (display->wl_shell)
+-		wl_shell_destroy(display->wl_shell);
+-	if (display->dmabuf)
+-		zwp_linux_dmabuf_v1_destroy(display->dmabuf);
+-	if (display->dmabuf_legacy)
+-		zlinux_dmabuf_destroy(display->dmabuf_legacy);
+-	if (display->registry)
+-		wl_registry_destroy(display->registry);
+-	if (display->display)
+-		wl_display_disconnect(display->display);
+-	free(display);
+-}
+-
+-struct display *
+-display_create(void)
+-{
+-	struct display *display;
+-
+-	display = calloc(1, sizeof *display);
+-	if (!display)
+-		return NULL;
+-
+-	display->display = wl_display_connect(NULL);
+-	if (!display->display) {
+-		err("failed to connect to wayland display: %m");
+-		goto fail;
+-	}
+-
+-	display->registry = wl_display_get_registry(display->display);
+-	wl_registry_add_listener(display->registry, &registry_listener,
+-				 display);
+-
+-	wl_display_roundtrip(display->display);
+-
+-	if (!display->xdg_shell && !display->wl_shell) {
+-		err("missing wayland shell");
+-		goto fail;
+-	}
+-
+-	if (!display->dmabuf && !display->dmabuf_legacy) {
+-		err("missing wayland dmabuf");
+-		goto fail;
+-	}
+-
+-	wl_list_init(&display->window_list);
+-
+-	display->running = 1;
+-
+-	return display;
+-
+-fail:
+-	display_destroy(display);
+-	return NULL;
+-}
+-
+-int
+-display_is_running(struct display *display)
+-{
+-	return display->running;
+-}
+-
+-struct wl_display *
+-display_get_wl_display(struct display *display)
+-{
+-	return display->display;
+-}
+diff --git a/display.h b/display.h
+deleted file mode 100644
+index 28b76d4..0000000
+--- a/display.h
++++ /dev/null
+@@ -1,68 +0,0 @@
+-#ifndef DISPLAY_H_
+-# define DISPLAY_H_
+-
+-#include <wayland-client.h>
+-#include <stdint.h>
+-#include <media/msm_vidc.h>
+-
+-#include "list.h"
+-
+-struct display;
+-struct window;
+-struct fb;
+-
+-typedef void (*fb_release_cb_t)(struct fb *fb, void *data);
+-
+-typedef void (*window_key_cb_t)(struct window *w, uint32_t time, uint32_t key,
+-				enum wl_keyboard_key_state state);
+-
+-#define FB_MAX_PLANES 3
+-
+-struct fb {
+-	struct window *window;
+-	int group;
+-	int index;
+-	int fd;
+-	int offsets[FB_MAX_PLANES];
+-	int strides[FB_MAX_PLANES];
+-	int n_planes;
+-	int width;
+-	int height;
+-	int busy;
+-	int ar_x, ar_y;
+-	int crop_x, crop_y, crop_w, crop_h;
+-	uint32_t format;
+-	struct list_head link;
+-	struct wl_buffer *buffer;
+-	struct wl_callback *sync_callback;
+-	struct wp_presentation_feedback *presentation_feedback;
+-	fb_release_cb_t release_cb;
+-	void *cb_data;
+-};
+-
+-struct wl_display *display_get_wl_display(struct display *display);
+-
+-struct display *display_create(void);
+-int display_is_running(struct display *display);
+-struct window *display_create_window(struct display *display);
+-void display_destroy(struct display *display);
+-
+-void window_set_user_data(struct window *w, void *data);
+-void *window_get_user_data(struct window *w);
+-void window_set_key_callback(struct window *w, window_key_cb_t handler);
+-void window_set_aspect_ratio(struct window *w, int ar_x, int ar_y);
+-void window_toggle_fullscreen(struct window *w);
+-
+-void window_show_buffer(struct window *window, struct fb *fb,
+-			fb_release_cb_t release_cb, void *cb_data);
+-struct fb *window_create_buffer(struct window *window, int group, int index,
+-				int fd, uint32_t format, int width, int height,
+-				int n_planes, const int *plane_offsets,
+-				const int *plane_strides);
+-void window_destroy(struct window *window);
+-
+-void fb_apply_extradata(struct fb *fb,
+-			const struct msm_vidc_extradata_header *hdr);
+-void fb_destroy(struct fb *fb);
+-
+-#endif /* !DISPLAY_H_ */
 diff --git a/fileops.c b/fileops.c
 new file mode 100644
-index 0000000..c254567
+index 0000000..f19e59d
 --- /dev/null
 +++ b/fileops.c
-@@ -0,0 +1,60 @@
+@@ -0,0 +1,61 @@
 +/*
 + * V4L2 Codec decoding example application
 + * Kamil Debski <k.debski@samsung.com>
@@ -1536,6 +2151,7 @@ index 0000000..c254567
 +
 +void input_close(struct instance *i)
 +{
++	printf("unmap and close input file.\n");
 +	munmap(i->in.p, i->in.size);
 +	close(i->in.fd);
 +}
@@ -1580,11 +2196,634 @@ index 0000000..bdebe3e
 +
 +#endif /* INCLUDE_FILEOPS_H */
 +
+diff --git a/list.h b/list.h
+deleted file mode 100644
+index 72ad3e5..0000000
+--- a/list.h
++++ /dev/null
+@@ -1,617 +0,0 @@
+-#ifndef LIST_H_
+-#define LIST_H_
+-
+-#ifdef __cplusplus
+-extern "C" {
+-#endif
+-
+-#include <stdlib.h>
+-#include <stddef.h>
+-#include <stdbool.h>
+-
+-/*
+- * container_of - cast a member of a structure out to the containing structure
+- *
+- * @ptr:	the pointer to the member.
+- * @type:	the type of the container struct this is embedded in.
+- * @member:	the name of the member within the struct.
+- *
+- */
+-#define container_of(ptr, type, member) ({			\
+-	const typeof( ((type *)0)->member ) *__mptr = (ptr);	\
+-	(type *)( (char *)__mptr - offsetof(type,member) );})
+-
+-
+-/*
+- * These are non-NULL pointers that will result in page faults
+- * under normal circumstances, used to verify that nobody uses
+- * non-initialized list entries.
+- */
+-#define LIST_POISON1  ((struct list_head *) 0x00100100)
+-#define LIST_POISON2  ((struct list_head *) 0x00200200)
+-#define HLIST_POISON1 ((struct hlist_node *) 0x00100100)
+-#define HLIST_POISON2 ((struct hlist_node **) 0x00200200)
+-
+-/*
+- * Simple doubly linked list implementation.
+- *
+- * Some of the internal functions ("__xxx") are useful when
+- * manipulating whole lists rather than single entries, as
+- * sometimes we already know the next/prev entries and we can
+- * generate better code by using them directly rather than
+- * using the generic single-entry routines.
+- */
+-
+-struct list_head {
+-	struct list_head *next, *prev;
+-};
+-
+-#define LIST_HEAD_INIT(name) { &(name), &(name) }
+-
+-#define LIST_HEAD(name) \
+-	struct list_head name = LIST_HEAD_INIT(name)
+-
+-#define INIT_LIST_HEAD(ptr) do { \
+-	(ptr)->next = (ptr); (ptr)->prev = (ptr); \
+-} while (0)
+-
+-/*
+- * Insert a new entry between two known consecutive entries.
+- *
+- * This is only for internal list manipulation where we know
+- * the prev/next entries already!
+- */
+-static inline void __list_add(struct list_head *_new,
+-			      struct list_head *prev,
+-			      struct list_head *next)
+-{
+-	next->prev = _new;
+-	_new->next = next;
+-	_new->prev = prev;
+-	prev->next = _new;
+-}
+-
+-/**
+- * list_add - add a new entry
+- * @new: new entry to be added
+- * @head: list head to add it after
+- *
+- * Insert a new entry after the specified head.
+- * This is good for implementing stacks.
+- */
+-static inline void list_add(struct list_head *_new, struct list_head *head)
+-{
+-	__list_add(_new, head, head->next);
+-}
+-
+-/**
+- * list_add_tail - add a new entry
+- * @new: new entry to be added
+- * @head: list head to add it before
+- *
+- * Insert a new entry before the specified head.
+- * This is useful for implementing queues.
+- */
+-static inline void list_add_tail(struct list_head *_new, struct list_head *head)
+-{
+-	__list_add(_new, head->prev, head);
+-}
+-
+-/*
+- * Delete a list entry by making the prev/next entries
+- * point to each other.
+- *
+- * This is only for internal list manipulation where we know
+- * the prev/next entries already!
+- */
+-static inline void __list_del(struct list_head * prev, struct list_head * next)
+-{
+-	next->prev = prev;
+-	prev->next = next;
+-}
+-
+-/**
+- * list_del - deletes entry from list.
+- * @entry: the element to delete from the list.
+- * Note: list_empty on entry does not return true after this, the entry is
+- * in an undefined state.
+- */
+-static inline void list_del(struct list_head *entry)
+-{
+-	__list_del(entry->prev, entry->next);
+-	entry->next = LIST_POISON1;
+-	entry->prev = LIST_POISON2;
+-}
+-
+-/**
+- * list_del_init - deletes entry from list and reinitialize it.
+- * @entry: the element to delete from the list.
+- */
+-static inline void list_del_init(struct list_head *entry)
+-{
+-	__list_del(entry->prev, entry->next);
+-	INIT_LIST_HEAD(entry);
+-}
+-
+-/**
+- * list_move - delete from one list and add as another's head
+- * @list: the entry to move
+- * @head: the head that will precede our entry
+- */
+-static inline void list_move(struct list_head *list, struct list_head *head)
+-{
+-        __list_del(list->prev, list->next);
+-        list_add(list, head);
+-}
+-
+-/**
+- * list_move_tail - delete from one list and add as another's tail
+- * @list: the entry to move
+- * @head: the head that will follow our entry
+- */
+-static inline void list_move_tail(struct list_head *list,
+-				  struct list_head *head)
+-{
+-        __list_del(list->prev, list->next);
+-        list_add_tail(list, head);
+-}
+-
+-/**
+- * list_is_first - tests whether @list is the first entry in list @head
+- * @list: the entry to test
+- * @head: the head of the list
+- */
+-static inline int list_is_first(const struct list_head *list,
+-				const struct list_head *head)
+-{
+-	return list->prev == head;
+-}
+-
+-/**
+- * list_is_last - tests whether @list is the last entry in list @head
+- * @list: the entry to test
+- * @head: the head of the list
+- */
+-static inline int list_is_last(const struct list_head *list,
+-			       const struct list_head *head)
+-{
+-	return list->next == head;
+-}
+-
+-/**
+- * list_empty - tests whether a list is empty
+- * @head: the list to test.
+- */
+-static inline int list_empty(const struct list_head *head)
+-{
+-	return head->next == head;
+-}
+-
+-static inline void __list_splice(struct list_head *list,
+-				 struct list_head *head)
+-{
+-	struct list_head *first = list->next;
+-	struct list_head *last = list->prev;
+-	struct list_head *at = head->next;
+-
+-	first->prev = head;
+-	head->next = first;
+-
+-	last->next = at;
+-	at->prev = last;
+-}
+-
+-/**
+- * list_splice - join two lists
+- * @list: the new list to add.
+- * @head: the place to add it in the first list.
+- */
+-static inline void list_splice(struct list_head *list, struct list_head *head)
+-{
+-	if (!list_empty(list))
+-		__list_splice(list, head);
+-}
+-
+-/**
+- * list_splice_init - join two lists and reinitialise the emptied list.
+- * @list: the new list to add.
+- * @head: the place to add it in the first list.
+- *
+- * The list at @list is reinitialised
+- */
+-static inline void list_splice_init(struct list_head *list,
+-				    struct list_head *head)
+-{
+-	if (!list_empty(list)) {
+-		__list_splice(list, head);
+-		INIT_LIST_HEAD(list);
+-	}
+-}
+-
+-/**
+- * list_sort - merge sort elements of a list.
+- * @head: the head of the list.
+- * @cmp: the function used to compare two list nodes.
+- */
+-void list_sort(struct list_head *head,
+-	       int (*cmp)(struct list_head *a, struct list_head *b));
+-
+-/**
+- * list_get_min - find the lowest element of a list.
+- * @head: the head of the list.
+- * @cmp: the function used to compare two list nodes.
+- * @return NULL if the list is empty, otherwise the lowest
+- * element.
+- */
+-struct list_head *
+-list_min(struct list_head *head,
+-	 int (*cmp)(struct list_head *a, struct list_head *b));
+-
+-/**
+- * list_entry - get the struct for this entry
+- * @ptr:	the &struct list_head pointer.
+- * @type:	the type of the struct this is embedded in.
+- * @member:	the name of the list_struct within the struct.
+- */
+-#define list_entry(ptr, type, member) \
+-	container_of(ptr, type, member)
+-
+-/**
+- * list_first_entry - get the first element from a list
+- * @ptr:	the list head to take the element from.
+- * @type:	the type of the struct this is embedded in.
+- * @member:	the name of the list_struct within the struct.
+- *
+- * Note, that list is expected to be not empty.
+- */
+-#define list_first_entry(ptr, type, member) \
+-	list_entry((ptr)->next, type, member)
+-
+-
+-/**
+- * list_prev_entry - get the prev element from a list
+- * @pos:	the type * to the current element.
+- * @head:	the head of your list.
+- * @member:	the name of the list_struct within the struct.
+- */
+-#define list_prev_entry(pos, head, member)				\
+-	(list_is_first(&(pos)->member, (head)) ?				\
+-	 NULL : list_entry((pos)->member.prev, typeof (*(pos)), member))
+-
+-/**
+- * list_next_entry - get the next element from a list
+- * @pos:	the type * to the current element.
+- * @head:	the head of your list.
+- * @member:	the name of the list_struct within the struct.
+- */
+-#define list_next_entry(pos, head, member)				\
+-	(list_is_last(&(pos)->member, (head)) ?				\
+-	 NULL : list_entry((pos)->member.next, typeof (*(pos)), member))
+-
+-/**
+- * list_last_entry - get the last element from a list
+- * @ptr:	the list head to take the element from.
+- * @type:	the type of the struct this is embedded in.
+- * @member:	the name of the list_struct within the struct.
+- *
+- * Note, that list is expected to be not empty.
+- */
+-#define list_last_entry(ptr, type, member) \
+-	list_entry((ptr)->prev, type, member)
+-
+-/**
+- * list_for_each	-	iterate over a list
+- * @pos:	the &struct list_head to use as a loop counter.
+- * @head:	the head for your list.
+- */
+-#define list_for_each(pos, head) \
+-	for (pos = (head)->next; pos != (head); \
+-        	pos = pos->next)
+-
+-/**
+- * __list_for_each	-	iterate over a list
+- * @pos:	the &struct list_head to use as a loop counter.
+- * @head:	the head for your list.
+- *
+- * This variant differs from list_for_each() in that it's the
+- * simplest possible list iteration code, no prefetching is done.
+- * Use this for code that knows the list to be very short (empty
+- * or 1 entry) most of the time.
+- */
+-#define __list_for_each(pos, head) \
+-	for (pos = (head)->next; pos != (head); pos = pos->next)
+-
+-/**
+- * list_for_each_prev	-	iterate over a list backwards
+- * @pos:	the &struct list_head to use as a loop counter.
+- * @head:	the head for your list.
+- */
+-#define list_for_each_prev(pos, head) \
+-	for (pos = (head)->prev; pos != (head); \
+-        	pos = pos->prev)
+-
+-/**
+- * list_for_each_safe	-	iterate over a list safe against removal of list entry
+- * @pos:	the &struct list_head to use as a loop counter.
+- * @n:		another &struct list_head to use as temporary storage
+- * @head:	the head for your list.
+- */
+-#define list_for_each_safe(pos, n, head) \
+-	for (pos = (head)->next, n = pos->next; pos != (head); \
+-		pos = n, n = pos->next)
+-
+-/**
+- * list_for_each_entry	-	iterate over list of given type
+- * @pos:	the type * to use as a loop counter.
+- * @head:	the head for your list.
+- * @member:	the name of the list_struct within the struct.
+- */
+-#define list_for_each_entry(pos, head, member)				\
+-	for (pos = list_entry((head)->next, typeof(*pos), member);	\
+-	     &pos->member != (head); 					\
+-	     pos = list_entry(pos->member.next, typeof(*pos), member))
+-
+-/**
+- * list_for_each_entry_reverse - iterate backwards over list of given type.
+- * @pos:	the type * to use as a loop counter.
+- * @head:	the head for your list.
+- * @member:	the name of the list_struct within the struct.
+- */
+-#define list_for_each_entry_reverse(pos, head, member)			\
+-	for (pos = list_entry((head)->prev, typeof(*pos), member);	\
+-	     &pos->member != (head); 					\
+-	     pos = list_entry(pos->member.prev, typeof(*pos), member))
+-
+-/**
+- * list_for_each_entry_continue -	iterate over list of given type
+- *			continuing after existing point
+- * @pos:	the type * to use as a loop counter.
+- * @head:	the head for your list.
+- * @member:	the name of the list_struct within the struct.
+- */
+-#define list_for_each_entry_continue(pos, head, member) 		\
+-	for (pos = list_entry(pos->member.next, typeof(*pos), member);	\
+-	     &pos->member != (head);					\
+-	     pos = list_entry(pos->member.next, typeof(*pos), member))
+-
+-/**
+- * list_for_each_entry_continue_reverse - iterate backwards from the given point
+- * @pos:	the type * to use as a loop cursor.
+- * @head:	the head for your list.
+- * @member:	the name of the list_struct within the struct.
+- *
+- * Start to iterate over list of given type backwards, continuing after
+- * the current position.
+- */
+-#define list_for_each_entry_continue_reverse(pos, head, member)		\
+-	for (pos = list_entry(pos->member.prev, typeof(*pos), member);	\
+-	     &pos->member != (head);					\
+-	     pos = list_entry(pos->member.prev, typeof(*pos), member))
+-
+-/**
+- * list_for_each_entry_from - iterate over list of given type from the current point
+- * @pos:	the type * to use as a loop cursor.
+- * @head:	the head for your list.
+- * @member:	the name of the list_struct within the struct.
+- *
+- * Iterate over list of given type, continuing from current position.
+- */
+-#define list_for_each_entry_from(pos, head, member) 			\
+-	for (; &pos->member != (head);					\
+-	     pos = list_entry(pos->member.next, typeof(*pos), member))
+-
+-/**
+- * list_for_each_entry_from_reverse - iterate backwards over list of given type from the current point
+- * @pos:	the type * to use as a loop cursor.
+- * @head:	the head for your list.
+- * @member:	the name of the list_struct within the struct.
+- *
+- * Iterate over list of given type, continuing from current position.
+- */
+-#define list_for_each_entry_from_reverse(pos, head, member)		\
+-	for (; &pos->member != (head);					\
+-	     pos = list_entry(pos->member.prev, typeof(*pos), member))
+-
+-/**
+- * list_for_each_entry_safe - iterate over list of given type safe against removal of list entry
+- * @pos:	the type * to use as a loop counter.
+- * @n:		another type * to use as temporary storage
+- * @head:	the head for your list.
+- * @member:	the name of the list_struct within the struct.
+- */
+-#define list_for_each_entry_safe(pos, n, head, member)			\
+-	for (pos = list_entry((head)->next, typeof(*pos), member),	\
+-		n = list_entry(pos->member.next, typeof(*pos), member);	\
+-	     &pos->member != (head); 					\
+-	     pos = n, n = list_entry(n->member.next, typeof(*n), member))
+-
+-
+-/**
+- * inserts _new into the list pointed by head, before the first item
+- * greater or equal to _new.
+- *
+- * @warning This functions expects the list to be already sorted.
+- *
+- * @comp is used to compare two items, it returns true if item1 is lesser than
+- * item2.
+- */
+-static inline void list_add_heap(struct list_head *_new,
+-				 struct list_head *head,
+-				 bool (*comp)(struct list_head *item1,
+-					      struct list_head *item2))
+-{
+-	struct list_head *pos;
+-	struct list_head *prev = head;
+-
+-	list_for_each(pos, head) {
+-		if (comp(_new, pos)) {
+-			__list_add(_new, prev, pos);
+-			return;
+-		}
+-		prev = pos;
+-	}
+-	list_add_tail(_new, head);
+-}
+-
+-/*
+- * Double linked lists with a single pointer list head.
+- * Mostly useful for hash tables where the two pointer list head is
+- * too wasteful.
+- * You lose the ability to access the tail in O(1).
+- */
+-
+-struct hlist_head {
+-	struct hlist_node *first;
+-};
+-
+-struct hlist_node {
+-	struct hlist_node *next, **pprev;
+-};
+-
+-#define HLIST_HEAD_INIT { .first = NULL }
+-#define HLIST_HEAD(name) struct hlist_head name = {  .first = NULL }
+-#define INIT_HLIST_HEAD(ptr) ((ptr)->first = NULL)
+-#define INIT_HLIST_NODE(ptr) ((ptr)->next = NULL, (ptr)->pprev = NULL)
+-
+-static __inline__ int hlist_unhashed(const struct hlist_node *h)
+-{
+-	return !h->pprev;
+-}
+-
+-static __inline__ int hlist_empty(const struct hlist_head *h)
+-{
+-	return !h->first;
+-}
+-
+-static __inline__ void __hlist_del(struct hlist_node *n)
+-{
+-	struct hlist_node *next = n->next;
+-	struct hlist_node **pprev = n->pprev;
+-	*pprev = next;
+-	if (next)
+-		next->pprev = pprev;
+-}
+-
+-static __inline__ void hlist_del(struct hlist_node *n)
+-{
+-	__hlist_del(n);
+-	n->next = HLIST_POISON1;
+-	n->pprev = HLIST_POISON2;
+-}
+-
+-static __inline__ void hlist_del_init(struct hlist_node *n) 
+-{
+-	if (n->pprev)  {
+-		__hlist_del(n);
+-		INIT_HLIST_NODE(n);
+-	}
+-}
+-
+-static __inline__ void hlist_add_head(struct hlist_node *n, struct hlist_head *h)
+-{
+-	struct hlist_node *first = h->first;
+-	n->next = first;
+-	if (first)
+-		first->pprev = &n->next;
+-	h->first = n;
+-	n->pprev = &h->first;
+-}
+-
+-static __inline__ void hlist_add_before(struct hlist_node *n, struct hlist_node *next)
+-{
+-	n->pprev = next->pprev;
+-	n->next = next;
+-	next->pprev = &n->next;
+-	*(n->pprev) = n;
+-}
+-
+-static __inline__ void hlist_add_after(struct hlist_node *n,
+-				       struct hlist_node *next)
+-{
+-	next->next = n->next;
+-	n->next = next;
+-	next->pprev = &n->next;
+-	if (next->next)
+-		next->next->pprev = &next->next;
+-}
+-
+-#define hlist_entry(ptr, type, member) container_of(ptr,type,member)
+-
+-#define hlist_for_each(pos, head) \
+-	for (pos = (head)->first; pos; pos = pos->next)
+-
+-#define hlist_for_each_safe(pos, n, head) \
+-	for (pos = (head)->first; n = pos ? pos->next : 0, pos; \
+-	     pos = n)
+-
+-/**
+- * hlist_for_each_entry	- iterate over list of given type
+- * @tpos:	the type * to use as a loop counter.
+- * @pos:	the &struct hlist_node to use as a loop counter.
+- * @head:	the head for your list.
+- * @member:	the name of the hlist_node within the struct.
+- */
+-#define hlist_for_each_entry(tpos, pos, head, member)			 \
+-	for (pos = (head)->first;					 \
+-	     pos &&							 \
+-		({ tpos = hlist_entry(pos, typeof(*tpos), member); 1;}); \
+-	     pos = pos->next)
+-
+-/**
+- * hlist_for_each_entry_continue - iterate over a hlist continuing after existing point
+- * @tpos:	the type * to use as a loop counter.
+- * @pos:	the &struct hlist_node to use as a loop counter.
+- * @member:	the name of the hlist_node within the struct.
+- */
+-#define hlist_for_each_entry_continue(tpos, pos, member)		 \
+-	for (pos = (pos)->next;						 \
+-	     pos &&							 \
+-		({ tpos = hlist_entry(pos, typeof(*tpos), member); 1;}); \
+-	     pos = pos->next)
+-
+-/**
+- * hlist_for_each_entry_from - iterate over a hlist continuing from existing point
+- * @tpos:	the type * to use as a loop counter.
+- * @pos:	the &struct hlist_node to use as a loop counter.
+- * @member:	the name of the hlist_node within the struct.
+- */
+-#define hlist_for_each_entry_from(tpos, pos, member)			 \
+-	for (; pos &&							 \
+-		({ tpos = hlist_entry(pos, typeof(*tpos), member); 1;}); \
+-	     pos = pos->next)
+-
+-/**
+- * hlist_for_each_entry_safe - iterate over list of given type safe against removal of list entry
+- * @tpos:	the type * to use as a loop counter.
+- * @pos:	the &struct hlist_node to use as a loop counter.
+- * @n:		another &struct hlist_node to use as temporary storage
+- * @head:	the head for your list.
+- * @member:	the name of the hlist_node within the struct.
+- */
+-#define hlist_for_each_entry_safe(tpos, pos, n, head, member) 		 \
+-	for (pos = (head)->first;					 \
+-	     pos && ({ n = pos->next; 1; }) && 				 \
+-		({ tpos = hlist_entry(pos, typeof(*tpos), member); 1;}); \
+-	     pos = n)
+-
+-#define hlist_insert_sorted(tpos, ntpos, pos, head, smember, hmember, res)	\
+-	res = 0;								\
+-	tpos = NULL;								\
+-	hlist_for_each_entry(tpos, pos, (head), hmember)			\
+-		if (ntpos->smember <= tpos->smember)				\
+-			break;							\
+-	if (tpos) {								\
+-		if (ntpos->smember < tpos->smember)				\
+-			hlist_add_before(&ntpos->hmember, &tpos->hmember);	\
+-		else if (ntpos->smember > tpos->smember)			\
+-			hlist_add_after(&tpos->hmember, &ntpos->hmember);	\
+-		else								\
+-			res = 1;						\
+-	} else									\
+-		hlist_add_head(&ntpos->hmember, (head));
+-
+-#ifdef __cplusplus
+-}
+-#endif
+-
+-#endif /* ! LIST_H_ */
 diff --git a/main.c b/main.c
-index 880afad..20d5bb3 100644
+index 880afad..619127d 100644
 --- a/main.c
 +++ b/main.c
-@@ -1,1404 +1,503 @@
+@@ -1,1404 +1,502 @@
 -/*
 - * V4L2 Codec decoding example application
 - * Kamil Debski <k.debski@samsung.com>
@@ -1681,6 +2920,7 @@ index 880afad..20d5bb3 100644
 +#include <semaphore.h>
 +#include <errno.h>
 +#include <fcntl.h>
++#include <signal.h>
 +#include <unistd.h>
 +#include <linux/fb.h>
 +
@@ -1703,13 +2943,7 @@ index 880afad..20d5bb3 100644
 + * used and still enable video device to decode with the hardware. */
 +#define RESULT_EXTRA_BUFFER_CNT 2
 +
-+static const int event_type[] = {
-+	V4L2_EVENT_MSM_VIDC_FLUSH_DONE,
-+	V4L2_EVENT_MSM_VIDC_PORT_SETTINGS_CHANGED_SUFFICIENT,
-+	V4L2_EVENT_MSM_VIDC_PORT_SETTINGS_CHANGED_INSUFFICIENT,
-+	V4L2_EVENT_MSM_VIDC_CLOSE_DONE,
-+	V4L2_EVENT_MSM_VIDC_SYS_ERROR
-+};
++struct instance inst;
 +
 +dc_frame_info UserFrameBufferSize = {
 +    .width = 1024,
@@ -2436,301 +3670,7 @@ index 880afad..20d5bb3 100644
 -	/* capture buffer is ready */
 -
 -	ret = video_dequeue_capture(i, &n, &bytesused, &flags, &tv, &extradata);
-+
-+char *UserMemFb = NULL;
-+
-+static int subscribe_for_events(int fd)
-+{
-+	int size_event = sizeof(event_type) / sizeof(event_type[0]);
-+	struct v4l2_event_subscription sub;
-+	int i, ret;
-+
-+	for (i = 0; i < size_event; i++) {
-+		memset(&sub, 0, sizeof(sub));
-+		sub.type = event_type[i];
-+		ret = ioctl(fd, VIDIOC_SUBSCRIBE_EVENT, &sub);
-+		if (ret < 0)
-+			err("cannot subscribe for event type %d (%s)",
-+				sub.type, strerror(errno));
-+	}
-+
-+	return 0;
-+}
-+
-+static int handle_v4l_events(struct video *vid)
-+{
-+	struct v4l2_event event;
-+	int ret;
-+
-+	memset(&event, 0, sizeof(event));
-+	ret = ioctl(vid->fd, VIDIOC_DQEVENT, &event);
-+	if (ret < 0) {
-+		err("vidioc_dqevent failed (%s) %d", strerror(errno), -errno);
-+		return -errno;
-+	}
-+
-+	switch (event.type) {
-+	case V4L2_EVENT_MSM_VIDC_PORT_SETTINGS_CHANGED_INSUFFICIENT:
-+		dbg("Port Reconfig recieved insufficient\n");
-+		break;
-+	case V4L2_EVENT_MSM_VIDC_PORT_SETTINGS_CHANGED_SUFFICIENT:
-+		dbg("Setting changed sufficient\n");
-+		break;
-+	case V4L2_EVENT_MSM_VIDC_FLUSH_DONE:
-+		dbg("Flush Done Recieved \n");
-+		break;
-+	case V4L2_EVENT_MSM_VIDC_CLOSE_DONE:
-+		dbg("Close Done Recieved \n");
-+		break;
-+	case V4L2_EVENT_MSM_VIDC_SYS_ERROR:
-+		dbg("SYS Error Recieved \n");
-+		break;
-+	default:
-+		dbg("unknown event type occurred %x\n", event.type);
-+		break;
-+	}
-+
-+	return 0;
-+}
-+
-+void cleanup(struct instance *i)
-+{
-+	if (i->video.fd)
-+		video_close(i);
-+	if (i->in.fd)
-+		input_close(i);
-+}
-+
-+int extract_and_process_header(struct instance *i)
-+{
-+	int used = 0, fs;
-+	int ret;
-+
-+	ret = i->parser.func(&i->parser.ctx,
-+			     i->in.p + i->in.offs,
-+			     i->in.size - i->in.offs,
-+			     i->video.out_buf_addr[0],
-+			     i->video.out_buf_size,
-+			     &used, &fs, 1);
-+	if (ret != 0) {
-+		err("Failed to extract header from stream");
-+		return -1;
-+	}
-+
-+	i->in.offs += used;
-+
-+	ret = video_queue_buf_out(i, 0, fs);
-+	if (ret)
-+		return -1;
-+
-+	dbg("queued output buffer %d", 0);
-+
-+	i->video.out_buf_flag[0] = 1;
-+
-+	ret = video_stream(i, V4L2_BUF_TYPE_VIDEO_OUTPUT_MPLANE,
-+			   VIDIOC_STREAMON);
-+	if (ret)
-+		return -1;
-+
-+	return 0;
-+}
-+
-+int save_frame(struct instance *i, const void *buf, unsigned int size)
-+{
-+	mode_t mode = S_IRUSR | S_IWUSR | S_IRGRP | S_IROTH;
-+	char filename[64];
-+	int fd;
-+	int ret;
-+	static unsigned int frame_num = 0;
-+
-+	if (!i->save_frames)
-+		return 0;
-+
-+	if (!i->save_path)
-+		ret = sprintf(filename, "/mnt/frame%04d.nv12", frame_num);
-+	else
-+		ret = sprintf(filename, "%s/frame%04d.nv12", i->save_path,
-+			      frame_num);
-+	if (ret < 0) {
-+		err("sprintf fail (%s)", strerror(errno));
-+		return -1;
-+	}
-+
-+	dbg("create file %s", filename);
-+
-+	fd = open(filename, O_WRONLY | O_CREAT | O_TRUNC | O_SYNC, mode);
-+	if (fd < 0) {
-+		err("cannot open file (%s)", strerror(errno));
-+		return -1;
-+	}
-+
-+	ret = write(fd, buf, size);
-+	if (ret < 0) {
-+		err("cannot write to file (%s)", strerror(errno));
-+		return -1;
-+	}
-+
-+	close(fd);
-+
-+	frame_num++;
-+
-+	return 0;
-+}
-+
-+/* This threads is responsible for parsing the stream and
-+ * feeding video decoder with consecutive frames to decode */
-+void *parser_thread_func(void *args)
-+{
-+	struct instance *i = (struct instance *)args;
-+	struct video *vid = &i->video;
-+	int used, fs, n;
-+	int ret;
-+
-+	dbg("Parser thread started");
-+
-+	while (!i->error && !i->finish && !i->parser.finished) {
-+		n = 0;
-+		pthread_mutex_lock(&i->lock);
-+		while (n < vid->out_buf_cnt && vid->out_buf_flag[n])
-+			n++;
-+		pthread_mutex_unlock(&i->lock);
-+
-+		if (n < vid->out_buf_cnt && !i->parser.finished) {
-+
-+			//printf("%s %d, n = %d, %d, %d, offset=0x%x, left=%d\n", 
-+			//	__func__, __LINE__, n, vid->out_buf_cnt, i->parser.finished, 
-+			//	i->in.offs, i->in.size - i->in.offs);		
-+
-+			ret = i->parser.func(&i->parser.ctx,
-+					     i->in.p + i->in.offs,
-+					     i->in.size - i->in.offs,
-+					     vid->out_buf_addr[n],
-+					     vid->out_buf_size,
-+					     &used, &fs, 0);
-+
-+			if ((ret != 0) || (i->in.offs + 4 >= i->in.size) || (fs == 0)) {
-+				if (ret != 0)
-+					dbg("Parser has error, abort!\n");
-+				else
-+					dbg("Parser has extracted all frames");
-+				i->parser.finished = 1;
-+				fs = 0;
-+				break;
-+			}
-+
-+			// dbg("Extracted frame of size %d", fs);
-+
-+			pthread_mutex_lock(&i->lock);
-+			vid->out_buf_flag[n] = 1;
-+			pthread_mutex_unlock(&i->lock);
-+
-+			// dbg("queued output buffer %d", n);
-+
-+			ret = video_queue_buf_out(i, n, fs);
-+			i->in.offs += used;
-+		}
-+	}
-+
-+	dbg("Parser thread finished");
-+
-+	return NULL;
-+}
-+
-+void *main_thread_func(void *args)
-+{
-+	struct instance *i = (struct instance *)args;
-+	struct video *vid = &i->video;
-+	struct pollfd pfd;
-+	short revents;
-+	int ret, n, finished;
-+
-+	dbg("main thread started");
-+
-+	pfd.fd = vid->fd;
-+	pfd.events = POLLIN | POLLRDNORM | POLLOUT | POLLWRNORM |
-+		     POLLRDBAND | POLLPRI;
-+
-+	while (1) {
-+		ret = poll(&pfd, 1, 2000);
-+		if (!ret) {
-+			err("poll timeout");
-+			break;
-+		} else if (ret < 0) {
-+			err("poll error");
-+			break;
-+		}
-+
-+		revents = pfd.revents;
-+
-+		if (revents & (POLLIN | POLLRDNORM)) {
-+			unsigned int bytesused;
-+
-+			/* capture buffer is ready */
-+
-+			ret = video_dequeue_capture(i, &n, &finished,
-+						    &bytesused);
-+			if (ret < 0)
-+				goto next_event;
-+
-+			vid->cap_buf_flag[n] = 0;
-+
-+			// info("decoded frame %ld", vid->total_captured);
-+
-+			if (finished)
-+				break;
-+
-+			vid->total_captured++;
-+
-+			//save_frame(i, (void *)vid->cap_buf_addr[n][0],
-+			//	   bytesused);
-+
-+			ret = video_queue_buf_cap(i, n);
-+			if (!ret)
-+				vid->cap_buf_flag[n] = 1;
-+		}
-+
-+next_event:
-+		if (revents & (POLLOUT | POLLWRNORM)) {
-+
-+			ret = video_dequeue_output(i, &n);
-+			if (ret < 0) {
-+				err("dequeue output buffer fail");
-+			} else {
-+				pthread_mutex_lock(&i->lock);
-+				vid->out_buf_flag[n] = 0;
-+				pthread_mutex_unlock(&i->lock);
-+			}
-+
-+			// dbg("dequeued output buffer %d", n);
-+		}
-+
-+		if (revents & POLLPRI) {
-+			dbg("v4l2 event");
-+			handle_v4l_events(vid);
-+		}
-+	}
-+
-+	dbg("main thread finished");
-+
-+	return NULL;
-+}
-+
-+int fb_open(struct instance *i, char *name)
-+{
-+	struct fb_var_screeninfo FBVar;
-+	struct fb_fix_screeninfo FBFix;
-+	unsigned int ScreenSizeFb;
-+	unsigned int OneframeSizeFb;
-+	int ret;
-+
-+	i->fb.fd = open(name, O_RDWR, 0);
-+	if (i->fb.fd < 0) {
-+		err("Failed to open fb device: %s", name);
-+		return -1;
-+	}
-+
-+	ret = ioctl(i->fb.fd, FBIOGET_VSCREENINFO, &FBVar);
- 	if (ret < 0) {
+-	if (ret < 0) {
 -		err("dequeue capture buffer fail");
 -		return ret;
 -	}
@@ -2813,9 +3753,7 @@ index 880afad..20d5bb3 100644
 -
 -		i->prerolled = 1;
 -
-+	    printf("FBIOGET_VSCREENINFO failed!\n");
-+	    return -1;
- 	}
+-	}
 -
 -	if (!busy && !i->reconfigure_pending)
 -		video_queue_buf_cap(i, n);
@@ -2835,10 +3773,7 @@ index 880afad..20d5bb3 100644
 -	int ret, n;
 -
 -	ret = video_dequeue_output(i, &n);
-+
-+#if 0
-+	ret = ioctl(i->fb.fd, FBIOGET_FSCREENINFO, &FBFix);
- 	if (ret < 0) {
+-	if (ret < 0) {
 -		err("dequeue output buffer fail");
 -		return ret;
 -	}
@@ -2859,18 +3794,8 @@ index 880afad..20d5bb3 100644
 -
 -	if (read(i->sigfd, &siginfo, sizeof (siginfo)) < 0) {
 -		perror("signalfd/read");
-+	    printf("FBIOGET_FSCREENINFO failed!\n");
-+	    return -1;
-+	}
-+
-+	/* framebuffer info */
-+	OneframeSizeFb = FBVar.xres * FBVar.yres * FBVar.bits_per_pixel / 8;
-+	ScreenSizeFb = FBVar.xres * FBVar.yres * (FBVar.yres_virtual / FBVar.yres) * FBVar.bits_per_pixel / 8;
-+	UserMemFb = (char *)mmap(NULL, ScreenSizeFb, PROT_READ | PROT_WRITE, MAP_SHARED, i->fb.fd, 0);
-+	if (UserMemFb == NULL) {
-+		printf("fb can't mmap!\n");
- 		return -1;
- 	}
+-		return -1;
+-	}
 -
 -	sigemptyset(&sigmask);
 -	sigaddset(&sigmask, siginfo.ssi_signo);
@@ -3176,13 +4101,325 @@ index 880afad..20d5bb3 100644
 -	avformat_network_init();
 -
 -	ret = avformat_open_input(&i->avctx, i->url, NULL, NULL);
--	if (ret < 0) {
++
++char *UserMemFb = NULL;
++
++#if 0
++static const int event_type[] = {
++	V4L2_EVENT_MSM_VIDC_FLUSH_DONE,
++	V4L2_EVENT_MSM_VIDC_PORT_SETTINGS_CHANGED_SUFFICIENT,
++	V4L2_EVENT_MSM_VIDC_PORT_SETTINGS_CHANGED_INSUFFICIENT,
++	V4L2_EVENT_MSM_VIDC_CLOSE_DONE,
++	V4L2_EVENT_MSM_VIDC_SYS_ERROR
++};
++
++static int subscribe_for_events(int fd)
++{
++	int size_event = sizeof(event_type) / sizeof(event_type[0]);
++	struct v4l2_event_subscription sub;
++	int i, ret;
++
++	for (i = 0; i < size_event; i++) {
++		memset(&sub, 0, sizeof(sub));
++		sub.type = event_type[i];
++		ret = ioctl(fd, VIDIOC_SUBSCRIBE_EVENT, &sub);
++		if (ret < 0)
++			err("cannot subscribe for event type %d (%s)",
++				sub.type, strerror(errno));
++	}
++
++	return 0;
++}
++#endif
++
++static int handle_v4l_events(struct video *vid)
++{
++	struct v4l2_event event;
++	int ret;
++
++	memset(&event, 0, sizeof(event));
++	ret = ioctl(vid->fd, VIDIOC_DQEVENT, &event);
++	if (ret < 0) {
++		err("vidioc_dqevent failed (%s) %d", strerror(errno), -errno);
++		return -errno;
++	}
++
++	switch (event.type) {
++	case V4L2_EVENT_MSM_VIDC_PORT_SETTINGS_CHANGED_INSUFFICIENT:
++		dbg("Port Reconfig recieved insufficient\n");
++		break;
++	case V4L2_EVENT_MSM_VIDC_PORT_SETTINGS_CHANGED_SUFFICIENT:
++		dbg("Setting changed sufficient\n");
++		break;
++	case V4L2_EVENT_MSM_VIDC_FLUSH_DONE:
++		dbg("Flush Done Recieved \n");
++		break;
++	case V4L2_EVENT_MSM_VIDC_CLOSE_DONE:
++		dbg("Close Done Recieved \n");
++		break;
++	case V4L2_EVENT_MSM_VIDC_SYS_ERROR:
++		dbg("SYS Error Recieved \n");
++		break;
++	default:
++		dbg("unknown event type occurred %x\n", event.type);
++		break;
++	}
++
++	return 0;
++}
++
++void cleanup(struct instance *i)
++{
++	printf("cleanup called.\n");
++	if (i->video.fd)
++		video_close(i);
++	if (i->in.fd)
++		input_close(i);
++}
++
++void sig_handler(int signo)
++{
++	if (signo == SIGINT) {
++		printf("SIGINT signal catched!\n");
++		cleanup(&inst);
++	}
++}
++
++
++int extract_and_process_header(struct instance *i)
++{
++	int used = 0, fs;
++	int ret;
++
++	ret = i->parser.func(&i->parser.ctx,
++			     i->in.p + i->in.offs,
++			     i->in.size - i->in.offs,
++			     i->video.out_buf_addr[0],
++			     i->video.out_buf_size,
++			     &used, &fs, 1);
++	if (ret != 0) {
++		err("Failed to extract header from stream");
++		return -1;
++	}
++
++	i->in.offs += used;
++
++	ret = video_queue_buf_out(i, 0, fs);
++	if (ret)
++		return -1;
++
++	dbg("queued output buffer %d", 0);
++
++	i->video.out_buf_flag[0] = 1;
++
++	ret = video_stream(i, V4L2_BUF_TYPE_VIDEO_OUTPUT_MPLANE,
++			   VIDIOC_STREAMON);
++	if (ret)
++		return -1;
++
++	return 0;
++}
++
++int save_frame(struct instance *i, const void *buf, unsigned int size)
++{
++	mode_t mode = S_IRUSR | S_IWUSR | S_IRGRP | S_IROTH;
++	char filename[64];
++	int fd;
++	int ret;
++	static unsigned int frame_num = 0;
++
++	if (!i->save_frames)
++		return 0;
++
++	if (!i->save_path)
++		ret = sprintf(filename, "/mnt/frame%04d.nv12", frame_num);
++	else
++		ret = sprintf(filename, "%s/frame%04d.nv12", i->save_path,
++			      frame_num);
++	if (ret < 0) {
++		err("sprintf fail (%s)", strerror(errno));
++		return -1;
++	}
++
++	dbg("create file %s", filename);
++
++	fd = open(filename, O_WRONLY | O_CREAT | O_TRUNC | O_SYNC, mode);
++	if (fd < 0) {
++		err("cannot open file (%s)", strerror(errno));
++		return -1;
++	}
++
++	ret = write(fd, buf, size);
++	if (ret < 0) {
++		err("cannot write to file (%s)", strerror(errno));
++		return -1;
++	}
++
++	close(fd);
++
++	frame_num++;
++
++	return 0;
++}
++
++/* This threads is responsible for parsing the stream and
++ * feeding video decoder with consecutive frames to decode */
++void *parser_thread_func(void *args)
++{
++	struct instance *i = (struct instance *)args;
++	struct video *vid = &i->video;
++	int used, fs, n;
++	int ret;
++
++	dbg("Parser thread started");
++
++	while (!i->error && !i->finish && !i->parser.finished) {
++		n = 0;
++		pthread_mutex_lock(&i->lock);
++		while (n < vid->out_buf_cnt && vid->out_buf_flag[n])
++			n++;
++		pthread_mutex_unlock(&i->lock);
++
++		if (n < vid->out_buf_cnt && !i->parser.finished) {
++
++			//printf("%s %d, n = %d, %d, %d, offset=0x%x, left=%d\n", 
++			//	__func__, __LINE__, n, vid->out_buf_cnt, i->parser.finished, 
++			//	i->in.offs, i->in.size - i->in.offs);		
++
++			ret = i->parser.func(&i->parser.ctx,
++					     i->in.p + i->in.offs,
++					     i->in.size - i->in.offs,
++					     vid->out_buf_addr[n],
++					     vid->out_buf_size,
++					     &used, &fs, 0);
++
++			if ((ret != 0) || (i->in.offs + 4 >= i->in.size) || (fs == 0)) {
++				if (ret != 0)
++					dbg("Parser has error, abort!\n");
++				else
++					dbg("Parser has extracted all frames");
++				i->parser.finished = 1;
++				fs = 0;
++				break;
++			}
++
++			// dbg("Extracted frame of size %d", fs);
++
++			pthread_mutex_lock(&i->lock);
++			vid->out_buf_flag[n] = 1;
++			pthread_mutex_unlock(&i->lock);
++
++			// dbg("queued output buffer %d", n);
++
++			ret = video_queue_buf_out(i, n, fs);
++			i->in.offs += used;
++		}
++	}
++
++	dbg("Parser thread finished");
++
++	return NULL;
++}
++
++void *main_thread_func(void *args)
++{
++	struct instance *i = (struct instance *)args;
++	struct video *vid = &i->video;
++	struct pollfd pfd;
++	short revents;
++	int ret, n, finished;
++
++	dbg("main thread started");
++
++	pfd.fd = vid->fd;
++	pfd.events = POLLIN | POLLRDNORM | POLLOUT | POLLWRNORM |
++		     POLLRDBAND | POLLPRI;
++
++	while (1) {
++		ret = poll(&pfd, 1, 2000);
++		if (!ret) {
++			err("poll timeout");
++			break;
++		} else if (ret < 0) {
++			err("poll error");
++			break;
++		}
++
++		revents = pfd.revents;
++
++		if (revents & (POLLIN | POLLRDNORM)) {
++			unsigned int bytesused;
++
++			/* capture buffer is ready */
++
++			ret = video_dequeue_capture(i, &n, &finished,
++						    &bytesused);
++			if (ret < 0)
++				goto next_event;
++
++			vid->cap_buf_flag[n] = 0;
++
++			// info("decoded frame %ld", vid->total_captured);
++
++			if (finished)
++				break;
++
++			vid->total_captured++;
++
++			//save_frame(i, (void *)vid->cap_buf_addr[n][0],
++			//	   bytesused);
++
++			ret = video_queue_buf_cap(i, n);
++			if (!ret)
++				vid->cap_buf_flag[n] = 1;
++		}
++
++next_event:
++		if (revents & (POLLOUT | POLLWRNORM)) {
++
++			ret = video_dequeue_output(i, &n);
++			if (ret < 0) {
++				err("dequeue output buffer fail");
++			} else {
++				pthread_mutex_lock(&i->lock);
++				vid->out_buf_flag[n] = 0;
++				pthread_mutex_unlock(&i->lock);
++			}
++
++			// dbg("dequeued output buffer %d", n);
++		}
++
++		if (revents & POLLPRI) {
++			dbg("v4l2 event");
++			handle_v4l_events(vid);
++		}
++	}
++
++	dbg("main thread finished");
++
++	return NULL;
++}
++
++int fb_open(struct instance *i, char *name)
++{
++	struct fb_var_screeninfo FBVar;
++	int ret;
++
++	i->fb.fd = open(name, O_RDWR, 0);
++	if (i->fb.fd < 0) {
++		err("Failed to open fb device: %s", name);
++		return -1;
++	}
++
++	ret = ioctl(i->fb.fd, FBIOGET_VSCREENINFO, &FBVar);
+ 	if (ret < 0) {
 -		av_err(ret, "failed to open %s", i->url);
 -		goto fail;
--	}
++	    printf("FBIOGET_VSCREENINFO failed!\n");
++	    return -1;
+ 	}
 -
 -	ret = avformat_find_stream_info(i->avctx, NULL);
-+#endif
 +
 +	ret = ioctl(i->fb.fd, ULTRAFBIO_BUFFER_SIZE, &UserFrameBufferSize);
  	if (ret < 0) {
@@ -3384,12 +4621,16 @@ index 880afad..20d5bb3 100644
 +
 +int main(int argc, char **argv)
 +{
-+	struct instance inst;
 +	struct video *vid = &inst.video;
 +	pthread_t parser_thread;
 +	pthread_t main_thread;
 +	int ret, n;
 +
++	if (signal(SIGINT, sig_handler) == SIG_ERR) {
++		printf("Failed to catach CTRL-C signal!\n");
++		return -1;
++	}
++	
 +	ret = parse_args(&inst, argc, argv);
 +	if (ret) {
 +		print_usage(argv[0]);
@@ -3486,14 +4727,14 @@ index 880afad..20d5bb3 100644
 +
 diff --git a/msm-v4l2-controls.h b/msm-v4l2-controls.h
 new file mode 100644
-index 0000000..3ce6c70
+index 0000000..d20fc51
 --- /dev/null
 +++ b/msm-v4l2-controls.h
-@@ -0,0 +1,461 @@
+@@ -0,0 +1,422 @@
 +#ifndef __MSM_V4L2_CONTROLS_H__
 +#define __MSM_V4L2_CONTROLS_H__
 +
-+#include <linux/v4l2-controls.h>
++//#include <linux/v4l2-controls.h>
 +
 +/*  MPEG-class control IDs specific to the msm_vidc driver */
 +#define V4L2_CID_MPEG_MSM_VIDC_BASE		(V4L2_CTRL_CLASS_MPEG | 0x2000)
@@ -3825,47 +5066,8 @@ index 0000000..3ce6c70
 +#define V4L2_CID_MPEG_VIDC_VIDEO_HEVC_PROFILE \
 +	(V4L2_CID_MPEG_MSM_VIDC_BASE + 65)
 +
-+#if 0
-+enum v4l2_mpeg_video_hevc_profile {
-+	V4L2_MPEG_VIDC_VIDEO_HEVC_PROFILE_MAIN			= 0,
-+	V4L2_MPEG_VIDC_VIDEO_HEVC_PROFILE_MAIN10		= 1,
-+	V4L2_MPEG_VIDC_VIDEO_HEVC_PROFILE_MAIN_STILL_PIC	= 2,
-+};
-+#endif
-+
 +#define V4L2_CID_MPEG_VIDC_VIDEO_HEVC_TIER_LEVEL \
 +	(V4L2_CID_MPEG_MSM_VIDC_BASE + 66)
-+
-+#if 0
-+enum v4l2_mpeg_video_hevc_level {
-+	V4L2_MPEG_VIDC_VIDEO_HEVC_LEVEL_MAIN_TIER_LEVEL_1	= 0,
-+	V4L2_MPEG_VIDC_VIDEO_HEVC_LEVEL_HIGH_TIER_LEVEL_1	= 1,
-+	V4L2_MPEG_VIDC_VIDEO_HEVC_LEVEL_MAIN_TIER_LEVEL_2	= 2,
-+	V4L2_MPEG_VIDC_VIDEO_HEVC_LEVEL_HIGH_TIER_LEVEL_2	= 3,
-+	V4L2_MPEG_VIDC_VIDEO_HEVC_LEVEL_MAIN_TIER_LEVEL_2_1	= 4,
-+	V4L2_MPEG_VIDC_VIDEO_HEVC_LEVEL_HIGH_TIER_LEVEL_2_1	= 5,
-+	V4L2_MPEG_VIDC_VIDEO_HEVC_LEVEL_MAIN_TIER_LEVEL_3	= 6,
-+	V4L2_MPEG_VIDC_VIDEO_HEVC_LEVEL_HIGH_TIER_LEVEL_3	= 7,
-+	V4L2_MPEG_VIDC_VIDEO_HEVC_LEVEL_MAIN_TIER_LEVEL_3_1	= 8,
-+	V4L2_MPEG_VIDC_VIDEO_HEVC_LEVEL_HIGH_TIER_LEVEL_3_1	= 9,
-+	V4L2_MPEG_VIDC_VIDEO_HEVC_LEVEL_MAIN_TIER_LEVEL_4	= 10,
-+	V4L2_MPEG_VIDC_VIDEO_HEVC_LEVEL_HIGH_TIER_LEVEL_4	= 11,
-+	V4L2_MPEG_VIDC_VIDEO_HEVC_LEVEL_MAIN_TIER_LEVEL_4_1	= 12,
-+	V4L2_MPEG_VIDC_VIDEO_HEVC_LEVEL_HIGH_TIER_LEVEL_4_1	= 13,
-+	V4L2_MPEG_VIDC_VIDEO_HEVC_LEVEL_MAIN_TIER_LEVEL_5	= 14,
-+	V4L2_MPEG_VIDC_VIDEO_HEVC_LEVEL_HIGH_TIER_LEVEL_5	= 15,
-+	V4L2_MPEG_VIDC_VIDEO_HEVC_LEVEL_MAIN_TIER_LEVEL_5_1	= 16,
-+	V4L2_MPEG_VIDC_VIDEO_HEVC_LEVEL_HIGH_TIER_LEVEL_5_1	= 17,
-+	V4L2_MPEG_VIDC_VIDEO_HEVC_LEVEL_MAIN_TIER_LEVEL_5_2	= 18,
-+	V4L2_MPEG_VIDC_VIDEO_HEVC_LEVEL_HIGH_TIER_LEVEL_5_2	= 19,
-+	V4L2_MPEG_VIDC_VIDEO_HEVC_LEVEL_MAIN_TIER_LEVEL_6	= 20,
-+	V4L2_MPEG_VIDC_VIDEO_HEVC_LEVEL_HIGH_TIER_LEVEL_6	= 21,
-+	V4L2_MPEG_VIDC_VIDEO_HEVC_LEVEL_MAIN_TIER_LEVEL_6_1	= 22,
-+	V4L2_MPEG_VIDC_VIDEO_HEVC_LEVEL_HIGH_TIER_LEVEL_6_1	= 23,
-+	V4L2_MPEG_VIDC_VIDEO_HEVC_LEVEL_MAIN_TIER_LEVEL_6_2	= 24,
-+	V4L2_MPEG_VIDC_VIDEO_HEVC_LEVEL_HIGH_TIER_LEVEL_6_2	= 25,
-+};
-+#endif
 +
 +#define V4L2_CID_MPEG_VIDC_VIDEO_H264_NAL_SVC \
 +	(V4L2_CID_MPEG_MSM_VIDC_BASE + 67)
@@ -4685,6 +5887,500 @@ index 0000000..492d12a
 +
 +#endif /* PARSER_H_ */
 +
+diff --git a/protocol/linux-dmabuf.xml b/protocol/linux-dmabuf.xml
+deleted file mode 100644
+index 0382be6..0000000
+--- a/protocol/linux-dmabuf.xml
++++ /dev/null
+@@ -1,274 +0,0 @@
+-<?xml version="1.0" encoding="UTF-8"?>
+-<protocol name="linux_dmabuf">
+-
+-  <copyright>
+-    Copyright © 2014, 2015 Collabora, Ltd.
+-
+-    Permission to use, copy, modify, distribute, and sell this
+-    software and its documentation for any purpose is hereby granted
+-    without fee, provided that the above copyright notice appear in
+-    all copies and that both that copyright notice and this permission
+-    notice appear in supporting documentation, and that the name of
+-    the copyright holders not be used in advertising or publicity
+-    pertaining to distribution of the software without specific,
+-    written prior permission.  The copyright holders make no
+-    representations about the suitability of this software for any
+-    purpose.  It is provided "as is" without express or implied
+-    warranty.
+-
+-    THE COPYRIGHT HOLDERS DISCLAIM ALL WARRANTIES WITH REGARD TO THIS
+-    SOFTWARE, INCLUDING ALL IMPLIED WARRANTIES OF MERCHANTABILITY AND
+-    FITNESS, IN NO EVENT SHALL THE COPYRIGHT HOLDERS BE LIABLE FOR ANY
+-    SPECIAL, INDIRECT OR CONSEQUENTIAL DAMAGES OR ANY DAMAGES
+-    WHATSOEVER RESULTING FROM LOSS OF USE, DATA OR PROFITS, WHETHER IN
+-    AN ACTION OF CONTRACT, NEGLIGENCE OR OTHER TORTIOUS ACTION,
+-    ARISING OUT OF OR IN CONNECTION WITH THE USE OR PERFORMANCE OF
+-    THIS SOFTWARE.
+-  </copyright>
+-
+-  <interface name="zlinux_dmabuf" version="1">
+-    <description summary="factory for creating dmabuf-based wl_buffers">
+-      Following the interfaces from:
+-      https://www.khronos.org/registry/egl/extensions/EXT/EGL_EXT_image_dma_buf_import.txt
+-      and the Linux DRM sub-system's AddFb2 ioctl.
+-
+-      This interface offers a way to create generic dmabuf-based
+-      wl_buffers. Immediately after a client binds to this interface,
+-      the set of supported formats is sent with 'format' events.
+-
+-      The following are required from clients:
+-
+-      - Clients must ensure that either all data in the dma-buf is
+-        coherent for all subsequent read access or that coherency is
+-        correctly handled by the underlying kernel-side dma-buf
+-        implementation.
+-
+-      - Don't make any more attachments after sending the buffer to the
+-        compositor. Making more attachments later increases the risk of
+-        the compositor not being able to use (re-import) an existing
+-        dmabuf-based wl_buffer.
+-
+-      The underlying graphics stack must ensure the following:
+-
+-      - The dmabuf file descriptors relayed to the server will stay valid
+-        for the whole lifetime of the wl_buffer. This means the server may
+-        at any time use those fds to import the dmabuf into any kernel
+-        sub-system that might accept it.
+-
+-      To create a wl_buffer from one or more dmabufs, a client creates a
+-      zlinux_dmabuf_params object with zlinux_dmabuf.create_params
+-      request. All planes required by the intended format are added with
+-      the 'add' request. Finally, 'create' request is issued. The server
+-      will reply with either 'created' event which provides the final
+-      wl_buffer or 'failed' event saying that it cannot use the dmabufs
+-      provided.
+-    </description>
+-
+-    <request name="destroy" type="destructor">
+-      <description summary="unbind the factory">
+-        Objects created through this interface, especially wl_buffers, will
+-        remain valid.
+-      </description>
+-    </request>
+-
+-    <request name="create_params">
+-      <description summary="create a temporary object for buffer parameters">
+-        This temporary object is used to collect multiple dmabuf handles into
+-        a single batch to create a wl_buffer. It can only be used once and
+-        should be destroyed after an 'created' or 'failed' event has been
+-        received.
+-      </description>
+-      <arg name="params_id" type="new_id" interface="zlinux_buffer_params"
+-           summary="the new temporary"/>
+-    </request>
+-
+-    <event name="format">
+-      <description summary="supported buffer format">
+-        This event advertises one buffer format that the server supports.
+-        All the supported formats are advertised once when the client
+-        binds to this interface. A roundtrip after binding guarantees,
+-        that the client has received all supported formats.
+-
+-        For the definition of the format codes, see create request.
+-
+-        XXX: Can a compositor ever enumerate them?
+-      </description>
+-      <arg name="format" type="uint" summary="DRM_FORMAT code"/>
+-    </event>
+-
+-  </interface>
+-
+-  <interface name="zlinux_buffer_params" version="1">
+-    <description summary="parameters for creating a dmabuf-based wl_buffer">
+-      This temporary object is a collection of dmabufs and other
+-      parameters that together form a single logical buffer. The temporary
+-      object may eventually create one wl_buffer unless cancelled by
+-      destroying it before requesting 'create'.
+-
+-      Single-planar formats only require one dmabuf, however
+-      multi-planar formats may require more than one dmabuf. For all
+-      formats, 'add' request must be called once per plane (even if the
+-      underlying dmabuf fd is identical).
+-
+-      You must use consecutive plane indices ('plane_idx' argument for 'add')
+-      from zero to the number of planes used by the drm_fourcc format code.
+-      All planes required by the format must be given exactly once, but can
+-      be given in any order. Each plane index can be set only once.
+-    </description>
+-
+-    <enum name="error">
+-      <entry name="already_used" value="0"
+-             summary="the dmabuf_batch object has already been used to create a wl_buffer"/>
+-
+-      <entry name="plane_idx" value="1"
+-             summary="plane index out of bounds"/>
+-
+-      <entry name="plane_set" value="2"
+-             summary="the plane index was already set"/>
+-
+-      <entry name="incomplete" value="3"
+-             summary="missing or too many planes to create a buffer"/>
+-
+-      <entry name="invalid_format" value="4"
+-             summary="format not supported"/>
+-
+-      <entry name="invalid_dimensions" value="5"
+-             summary="invalid width or height"/>
+-
+-      <entry name="out_of_bounds" value="6"
+-             summary="offset + stride * height goes out of dmabuf bounds"/>
+-    </enum>
+-
+-    <request name="destroy" type="destructor">
+-      <description summary="delete this object, used or not">
+-        Cleans up the temporary data sent to the server for dmabuf-based
+-        wl_buffer creation.
+-      </description>
+-    </request>
+-
+-    <request name="add">
+-      <description summary="add a dmabuf to the temporary set">
+-        This request adds one dmabuf to the set in this zlinux_buffer_params.
+-
+-        The 64-bit unsigned value combined from modifier_hi and modifier_lo
+-        is the dmabuf layout modifier. DRM AddFB2 ioctl calls this the
+-        fb modifier, which is defined in drm_mode.h of Linux UAPI.
+-        This is an opaque token. Drivers use this token to express tiling,
+-        compression, etc. driver-specific modifications to the base format
+-        defined by the DRM fourcc code.
+-
+-        This request raises the PLANE_IDX error if plane_idx is too large.
+-        The error PLANE_SET is raised if attempting to set a plane that
+-        was already set.
+-      </description>
+-
+-      <arg name="fd" type="fd" summary="dmabuf fd"/>
+-      <arg name="plane_idx" type="uint" summary="plane index"/>
+-      <arg name="offset" type="uint" summary="offset in bytes"/>
+-      <arg name="stride" type="uint" summary="stride in bytes"/>
+-      <arg name="modifier_hi" type="uint"
+-           summary="high 32 bits of layout modifier"/>
+-      <arg name="modifier_lo" type="uint"
+-           summary="low 32 bits of layout modifier"/>
+-    </request>
+-
+-    <enum name="flags">
+-      <entry name="y_invert" value="1" summary="contents are y-inverted"/>
+-      <entry name="interlaced" value="2" summary="content is interlaced"/>
+-      <entry name="bottom_first" value="4" summary="bottom field first"/>
+-    </enum>
+-
+-    <request name="create">
+-      <description summary="create a wl_buffer from the given dmabufs">
+-        This asks for creation of a wl_buffer from the added dmabuf
+-        buffers. The wl_buffer is not created immediately but returned via
+-        the 'created' event if the dmabuf sharing succeeds. The sharing
+-        may fail at runtime for reasons a client cannot predict, in
+-        which case the 'failed' event is triggered.
+-
+-        The 'format' argument is a DRM_FORMAT code, as defined by the
+-        libdrm's drm_fourcc.h. The Linux kernel's DRM sub-system is the
+-        authoritative source on how the format codes should work.
+-
+-        The 'flags' is a bitfield of the flags defined in enum "flags".
+-        'y_invert' means the that the image needs to be y-flipped.
+-
+-        Flag 'interlaced' means that the frame in the buffer is not
+-        progressive as usual, but interlaced. An interlaced buffer as
+-        supported here must always contain both top and bottom fields.
+-        The top field always begins on the first pixel row. The temporal
+-        ordering between the two fields is top field first, unless
+-        'bottom_first' is specified. It is undefined whether 'bottom_first'
+-        is ignored if 'interlaced' is not set.
+-
+-        This protocol does not convey any information about field rate,
+-        duration, or timing, other than the relative ordering between the
+-        two fields in one buffer. A compositor may have to estimate the
+-        intended field rate from the incoming buffer rate. It is undefined
+-        whether the time of receiving wl_surface.commit with a new buffer
+-        attached, applying the wl_surface state, wl_surface.frame callback
+-        trigger, presentation, or any other point in the compositor cycle
+-        is used to measure the frame or field times. There is no support
+-        for detecting missed or late frames/fields/buffers either, and
+-        there is no support whatsoever for cooperating with interlaced
+-        compositor output.
+-
+-        The composited image quality resulting from the use of interlaced
+-        buffers is explicitly undefined. A compositor may use elaborate
+-        hardware features or software to deinterlace and create progressive
+-        output frames from a sequence of interlaced input buffers, or it
+-        may produce substandard image quality. However, compositors that
+-        cannot guarantee reasonable image quality in all cases are recommended
+-        to just reject all interlaced buffers.
+-
+-        Any argument errors, including non-positive width or height,
+-        mismatch between the number of planes and the format, bad
+-        format, bad offset or stride, may be indicated by fatal protocol
+-        errors: INCOMPLETE, INVALID_FORMAT, INVALID_DIMENSIONS,
+-        OUT_OF_BOUNDS.
+-
+-        Dmabuf import errors in the server that are not obvious client
+-        bugs are returned via the 'failed' event as non-fatal. This
+-        allows attempting dmabuf sharing and falling back in the client
+-        if it fails.
+-
+-        This request can be sent only once in the object's lifetime, after
+-        which the only legal request is destroy. This object should be
+-        destroyed after issuing 'create' request. Attempting to use this
+-        object after issuing 'create' raises ALREADY_USED protocol error.
+-
+-        It is not mandatory to issue 'create'. If a client wants to
+-        cancel the buffer creation, it can just destroy this object.
+-      </description>
+-      <arg name="width" type="int" summary="base plane width in pixels"/>
+-      <arg name="height" type="int" summary="base plane height in pixels"/>
+-      <arg name="format" type="uint" summary="DRM_FORMAT code"/>
+-      <arg name="flags" type="uint" summary="see enum flags"/>
+-    </request>
+-
+-    <event name="created">
+-      <description summary="buffer creation succeeded">
+-        This event indicates that the attempted buffer creation was
+-        successful. It provides the new wl_buffer referencing the dmabuf(s).
+-
+-        Upon receiving this event, the client should destroy the
+-        zlinux_dmabuf_params object.
+-      </description>
+-      <arg name="buffer" type="new_id" interface="wl_buffer"
+-           summary="the newly created wl_buffer"/>
+-    </event>
+-
+-    <event name="failed">
+-      <description summary="buffer creation failed">
+-        This event indicates that the attempted buffer creation has
+-        failed. It usually means that one of the dmabuf constraints
+-        has not been fulfilled.
+-
+-        Upon receiving this event, the client should destroy the
+-        zlinux_buffer_params object.
+-      </description>
+-    </event>
+-
+-  </interface>
+-
+-</protocol>
+diff --git a/protocol/scaler.xml b/protocol/scaler.xml
+deleted file mode 100644
+index 0e482a6..0000000
+--- a/protocol/scaler.xml
++++ /dev/null
+@@ -1,208 +0,0 @@
+-<?xml version="1.0" encoding="UTF-8"?>
+-<protocol name="scaler">
+-
+-  <copyright>
+-    Copyright © 2013-2014 Collabora, Ltd.
+-
+-    Permission is hereby granted, free of charge, to any person obtaining a
+-    copy of this software and associated documentation files (the "Software"),
+-    to deal in the Software without restriction, including without limitation
+-    the rights to use, copy, modify, merge, publish, distribute, sublicense,
+-    and/or sell copies of the Software, and to permit persons to whom the
+-    Software is furnished to do so, subject to the following conditions:
+-
+-    The above copyright notice and this permission notice (including the next
+-    paragraph) shall be included in all copies or substantial portions of the
+-    Software.
+-
+-    THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+-    IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+-    FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT.  IN NO EVENT SHALL
+-    THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+-    LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING
+-    FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
+-    DEALINGS IN THE SOFTWARE.
+-  </copyright>
+-
+-  <interface name="wl_scaler" version="2">
+-    <description summary="surface cropping and scaling">
+-      The global interface exposing surface cropping and scaling
+-      capabilities is used to instantiate an interface extension for a
+-      wl_surface object. This extended interface will then allow
+-      cropping and scaling the surface contents, effectively
+-      disconnecting the direct relationship between the buffer and the
+-      surface size.
+-    </description>
+-
+-    <request name="destroy" type="destructor">
+-      <description summary="unbind from the cropping and scaling interface">
+-	Informs the server that the client will not be using this
+-	protocol object anymore. This does not affect any other objects,
+-	wl_viewport objects included.
+-      </description>
+-    </request>
+-
+-    <enum name="error">
+-      <entry name="viewport_exists" value="0"
+-             summary="the surface already has a viewport object associated"/>
+-    </enum>
+-
+-    <request name="get_viewport">
+-      <description summary="extend surface interface for crop and scale">
+-	Instantiate an interface extension for the given wl_surface to
+-	crop and scale its content. If the given wl_surface already has
+-	a wl_viewport object associated, the viewport_exists
+-	protocol error is raised.
+-      </description>
+-
+-      <arg name="id" type="new_id" interface="wl_viewport"
+-           summary="the new viewport interface id"/>
+-      <arg name="surface" type="object" interface="wl_surface"
+-           summary="the surface"/>
+-    </request>
+-  </interface>
+-
+-  <interface name="wl_viewport" version="2">
+-    <description summary="crop and scale interface to a wl_surface">
+-      An additional interface to a wl_surface object, which allows the
+-      client to specify the cropping and scaling of the surface
+-      contents.
+-
+-      This interface allows to define the source rectangle (src_x,
+-      src_y, src_width, src_height) from where to take the wl_buffer
+-      contents, and scale that to destination size (dst_width,
+-      dst_height). This state is double-buffered, and is applied on the
+-      next wl_surface.commit.
+-
+-      The two parts of crop and scale state are independent: the source
+-      rectangle, and the destination size. Initially both are unset, that
+-      is, no scaling is applied. The whole of the current wl_buffer is
+-      used as the source, and the surface size is as defined in
+-      wl_surface.attach.
+-
+-      If the destination size is set, it causes the surface size to become
+-      dst_width, dst_height. The source (rectangle) is scaled to exactly
+-      this size. This overrides whatever the attached wl_buffer size is,
+-      unless the wl_buffer is NULL. If the wl_buffer is NULL, the surface
+-      has no content and therefore no size. Otherwise, the size is always
+-      at least 1x1 in surface coordinates.
+-
+-      If the source rectangle is set, it defines what area of the
+-      wl_buffer is taken as the source. If the source rectangle is set and
+-      the destination size is not set, the surface size becomes the source
+-      rectangle size rounded up to the nearest integer. If the source size
+-      is already exactly integers, this results in cropping without scaling.
+-
+-      The coordinate transformations from buffer pixel coordinates up to
+-      the surface-local coordinates happen in the following order:
+-        1. buffer_transform (wl_surface.set_buffer_transform)
+-        2. buffer_scale (wl_surface.set_buffer_scale)
+-        3. crop and scale (wl_viewport.set*)
+-      This means, that the source rectangle coordinates of crop and scale
+-      are given in the coordinates after the buffer transform and scale,
+-      i.e. in the coordinates that would be the surface-local coordinates
+-      if the crop and scale was not applied.
+-
+-      If the source rectangle is partially or completely outside of the
+-      wl_buffer, then the surface contents are undefined (not void), and
+-      the surface size is still dst_width, dst_height.
+-
+-      The x, y arguments of wl_surface.attach are applied as normal to
+-      the surface. They indicate how many pixels to remove from the
+-      surface size from the left and the top. In other words, they are
+-      still in the surface-local coordinate system, just like dst_width
+-      and dst_height are.
+-
+-      If the wl_surface associated with the wl_viewport is destroyed,
+-      the wl_viewport object becomes inert.
+-
+-      If the wl_viewport object is destroyed, the crop and scale
+-      state is removed from the wl_surface. The change will be applied
+-      on the next wl_surface.commit.
+-    </description>
+-
+-    <request name="destroy" type="destructor">
+-      <description summary="remove scaling and cropping from the surface">
+-	The associated wl_surface's crop and scale state is removed.
+-	The change is applied on the next wl_surface.commit.
+-      </description>
+-    </request>
+-
+-    <enum name="error">
+-      <entry name="bad_value" value="0"
+-             summary="negative or zero values in width or height"/>
+-    </enum>
+-
+-    <request name="set">
+-      <description summary="set the crop and scale state">
+-	Set both source rectangle and destination size of the associated
+-	wl_surface. See wl_viewport for the description, and relation to
+-	the wl_buffer size.
+-
+-	The bad_value protocol error is raised if src_width or
+-	src_height is negative, or if dst_width or dst_height is not
+-	positive.
+-
+-	The crop and scale state is double-buffered state, and will be
+-	applied on the next wl_surface.commit.
+-
+-	Arguments dst_x and dst_y do not exist here, use the x and y
+-	arguments to wl_surface.attach. The x, y, dst_width, and dst_height
+-	define the surface-local coordinate system irrespective of the
+-	attached wl_buffer size.
+-      </description>
+-
+-      <arg name="src_x" type="fixed" summary="source rectangle x"/>
+-      <arg name="src_y" type="fixed" summary="source rectangle y"/>
+-      <arg name="src_width" type="fixed" summary="source rectangle width"/>
+-      <arg name="src_height" type="fixed" summary="source rectangle height"/>
+-      <arg name="dst_width" type="int" summary="surface width"/>
+-      <arg name="dst_height" type="int" summary="surface height"/>
+-    </request>
+-
+-    <request name="set_source" since="2">
+-      <description summary="set the source rectangle for cropping">
+-	Set the source rectangle of the associated wl_surface. See
+-	wl_viewport for the description, and relation to the wl_buffer
+-	size.
+-
+-	If width is -1.0 and height is -1.0, the source rectangle is unset
+-	instead. Any other pair of values for width and height that
+-	contains zero or negative values raises the bad_value protocol
+-	error.
+-
+-	The crop and scale state is double-buffered state, and will be
+-	applied on the next wl_surface.commit.
+-      </description>
+-
+-      <arg name="x" type="fixed" summary="source rectangle x"/>
+-      <arg name="y" type="fixed" summary="source rectangle y"/>
+-      <arg name="width" type="fixed" summary="source rectangle width"/>
+-      <arg name="height" type="fixed" summary="source rectangle height"/>
+-    </request>
+-
+-    <request name="set_destination" since="2">
+-      <description summary="set the surface size for scaling">
+-	Set the destination size of the associated wl_surface. See
+-	wl_viewport for the description, and relation to the wl_buffer
+-	size.
+-
+-	If width is -1 and height is -1, the destination size is unset
+-	instead. Any other pair of values for width and height that
+-	contains zero or negative values raises the bad_value protocol
+-	error.
+-
+-	The crop and scale state is double-buffered state, and will be
+-	applied on the next wl_surface.commit.
+-
+-	Arguments x and y do not exist here, use the x and y arguments to
+-	wl_surface.attach. The x, y, width, and height define the
+-	surface-local coordinate system irrespective of the attached
+-	wl_buffer size.
+-      </description>
+-
+-      <arg name="width" type="int" summary="surface width"/>
+-      <arg name="height" type="int" summary="surface height"/>
+-    </request>
+-  </interface>
+-</protocol>
 diff --git a/queue.c b/queue.c
 new file mode 100644
 index 0000000..5649fc2
@@ -4836,10 +6532,10 @@ index 0000000..531020f
 +#endif /* INCLUDE_QUEUE_H */
 +
 diff --git a/video.c b/video.c
-index bb8ae8e..a8f240a 100644
+index bb8ae8e..7f2965d 100644
 --- a/video.c
 +++ b/video.c
-@@ -1,1351 +1,481 @@
+@@ -1,1351 +1,491 @@
 -/*
 - * V4L2 Codec decoding example application
 - * Kamil Debski <k.debski@samsung.com>
@@ -6498,8 +8194,18 @@ index bb8ae8e..a8f240a 100644
 +	int n;
 +
 +	fmt.type = V4L2_BUF_TYPE_VIDEO_CAPTURE_MPLANE;
++
++#if 0   /*
++         *  To save memory, let Linux V4L2 core allocate tiny image buffers.
++         *  We dot not use V4L2 decode output buffers, because the output
++         *  images were directly written to the specified physical address by H/W.
++         */
++	fmt.fmt.pix_mp.height = 32;
++	fmt.fmt.pix_mp.width = 32;
++#else	
 +	fmt.fmt.pix_mp.height = h;
 +	fmt.fmt.pix_mp.width = w;
++#endif
 +
 +printf("video_setup_capture: %dx%d\n", w, h);
 +	if (i->out_format == NULL) {
@@ -6837,5 +8543,5 @@ index 83b259c..7a0bf26 100644
 +#endif /* INCLUDE_VIDEO_H */
 +
 -- 
-2.25.1
+1.7.9.5
 
