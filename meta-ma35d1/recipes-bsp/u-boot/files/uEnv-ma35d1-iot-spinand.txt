@@ -8,6 +8,6 @@ spimode=1
 stderr=serial
 stdin=serial
 stdout=serial
-bootargs=noinitrd ubi.mtd=5 root=ubi0:rootfs rootfstype=ubifs rw rootwait=1 console=ttyS0,115200n8 rdinit=/sbin/init mem=128M
-bootcmd=dcache off\; sf probe\; mtd read spi-nand0 0x80080000 0x200000 0xc00000\;mtd read spi-nand0 0x85000000 0x1E0000 0x10000;\booti 0x80080000 - 0x85000000
+bootargs=noinitrd ubi.mtd=9 root=ubi0:rootfs rootfstype=ubifs rw rootwait=1 console=ttyS0,115200n8 rdinit=/sbin/init mem=128M
+bootcmd=mtd list\;mtd read spi-nand0 0x80080000 0x300000 0xb00000\;mtd read spi-nand0 0x85000000 0x2C0000 0x10000\;booti 0x80080000 - 0x85000000
 device=spinand

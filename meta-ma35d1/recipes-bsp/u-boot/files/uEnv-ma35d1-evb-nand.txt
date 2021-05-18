@@ -7,7 +7,6 @@ serverip=192.168.0.100
 stderr=serial
 stdin=serial
 stdout=serial
-bootargs=noinitrd ubi.mtd=2 root=ubi0:rootfs rootfstype=ubifs rw rootwait=1 console=ttyS0,115200n8 rdinit=/sbin/init mem=256M
-bootcmd=nboot 0x7fc0 0 0x200000\; bootm 0x7fc0
-bootcmd=dcache off\;nand read 0x80080000 0x200000 0xc00000\;nand read 0x85000000 0x1E0000 0x10000;\booti 0x80080000 - 0x85000000
+bootargs=noinitrd ubi.mtd=4 root=ubi0:rootfs rootfstype=ubifs rw rootwait=1 console=ttyS0,115200n8 rdinit=/sbin/init mem=256M
+bootcmd=dcache off\;nand read 0x80080000 0x300000 0xb00000\;nand read 0x85000000 0x2C0000 0x10000\;booti 0x80080000 - 0x85000000
 device=nand

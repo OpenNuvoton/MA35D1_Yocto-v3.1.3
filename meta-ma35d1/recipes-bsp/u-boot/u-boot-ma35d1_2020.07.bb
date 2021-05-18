@@ -18,7 +18,9 @@ SRC_URI = "${UBOOT_SRC}"
 SRCREV = "master"
 
 SRC_URI += " file://uEnv-${MACHINE}-spinand.txt \
+             file://uEnv-${MACHINE}-spinand-ubi.cfg \
              file://uEnv-${MACHINE}-nand.txt \
+             file://uEnv-${MACHINE}-nand-ubi.cfg \
              file://uEnv-${MACHINE}-sdcard.txt \
            "
 
@@ -61,6 +63,11 @@ do_deploy_append() {
                         ln -sf ${UBOOT_INITIAL_ENV}-${MACHINE}-${type}-${PV}-${PR} u-boot-env-${type}
                         cp ${B}/${config}/u-boot-initial-env.bin-${type} ${DEPLOY_DIR_IMAGE}/u-boot-initial-env.bin-${type}
                     fi
+                fi
+                if [ "${type}" = "spinand" ]; then
+                   cp ${WORKDIR}/uEnv-${MACHINE}-spinand-ubi.cfg ${DEPLOY_DIR_IMAGE}/u-boot-initial-env-spinand-ubi.cfg
+                elif [ "${type}" = "nand" ]; then
+                   cp ${WORKDIR}/uEnv-${MACHINE}-nand-ubi.cfg ${DEPLOY_DIR_IMAGE}/u-boot-initial-env-nand-ubi.cfg
                 fi
             done
             unset  j

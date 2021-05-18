@@ -7,6 +7,7 @@ do_image_nand[depends] = "virtual/trusted-firmware-a:do_deploy \
                           virtual/bootloader:do_deploy \
                           python3-nuwriter-native:do_deploy \
                           jq-native:do_populate_sysroot \
+                          mtd-utils-native:do_populate_sysroot \
                          "
 
 IMAGE_TYPEDEP_spinand = "ubi"
@@ -16,6 +17,7 @@ do_image_spinand[depends] = "virtual/trusted-firmware-a:do_deploy \
                              virtual/bootloader:do_deploy \
                              python3-nuwriter-native:do_deploy \
                              jq-native:do_populate_sysroot \
+                             mtd-utils-native:do_populate_sysroot \
                              ${@bb.utils.contains('IMAGE_FSTYPES', 'nand', '${IMAGE_BASENAME}:do_image_nand', '', d)} \
                             "
 
@@ -49,6 +51,8 @@ IMAGE_CMD_spinand() {
         (cd ${DEPLOY_DIR_IMAGE}; ln -sf fip_without_optee-${IMAGE_BASENAME}-${MACHINE}.bin-spinand fip.bin-spinand)
     fi
 
+    (cd ${DEPLOY_DIR_IMAGE}; ubinize ${UBINIZE_ARGS} -o u-boot-initial-env.ubi-spinand u-boot-initial-env-spinand-ubi.cfg)
+
     if [ -f ${IMGDEPLOYDIR}/${IMAGE_NAME}.rootfs.ubi ]; then
         (cd ${DEPLOY_DIR_IMAGE}; \
          ln -sf ${IMGDEPLOYDIR}/${IMAGE_NAME}.rootfs.ubi rootfs.ubi-spinand; \
@@ -80,6 +84,8 @@ IMAGE_CMD_nand() {
             ${DEPLOY_DIR_IMAGE}/fip_without_optee-${IMAGE_BASENAME}-${MACHINE}.bin-nand
         (cd ${DEPLOY_DIR_IMAGE}; ln -sf fip_without_optee-${IMAGE_BASENAME}-${MACHINE}.bin-nand fip.bin-nand)
     fi
+
+   (cd ${DEPLOY_DIR_IMAGE}; ubinize ${UBINIZE_ARGS} -o u-boot-initial-env.ubi-nand u-boot-initial-env-nand-ubi.cfg)
 
     if [ -f ${IMGDEPLOYDIR}/${IMAGE_NAME}.rootfs.ubi ]; then
         (cd ${DEPLOY_DIR_IMAGE}; \

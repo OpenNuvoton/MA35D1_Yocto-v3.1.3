@@ -28,17 +28,17 @@
           "type": 1
         },
         {
-          "offset": "0x1C0000",
-          "file": "u-boot-initial-env.bin-spinand",
+          "offset": "0x200000",
+          "file": "u-boot-initial-env.ubi-spinand",
           "type": 1
         },
         {
-          "offset": "0x1E0000",
+          "offset": "0x2C0000",
           "file": "Image.dtb",
           "type": 1
         },
         {
-          "offset": "0x200000",
+          "offset": "0x300000",
           "file": "Image",
           "type": 1
 	},

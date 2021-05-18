@@ -22,7 +22,9 @@ IMAGE_INSTALL_append = "\
     ttf-dejavu-common \
     qt5-env \
     v4l-utils \
+    gstreamer1.0-plugins-base \
     gstreamer1.0-plugins-good \
+    gstreamer1.0-plugins-bad \
     "
 
 # Define to null ROOTFS_MAXSIZE to avoid partition size restriction
