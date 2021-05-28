@@ -1,7 +1,7 @@
 SUMMARY = "NUC3500 example of image based on QT framework."
 LICENSE = "Proprietary"
 
-inherit ${@bb.utils.contains('LAYERDEPENDS', 'qt5-layer', 'populate_sdk_qt5', '', d)}
+inherit populate_sdk_qt5
 
 inherit core-image 
 
