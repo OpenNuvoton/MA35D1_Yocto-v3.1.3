@@ -41,9 +41,21 @@ PLATFORM = "${TFA_PLATFORM}"
 export CROSS_COMPILE="${TARGET_PREFIX}"
 export ARCH="arm64"
 do_compile() {
-	oe_runmake PLAT=${PLATFORM} -C ${S} realclean
-	oe_runmake PLAT=${PLATFORM} -C ${S} all
-	oe_runmake PLAT=${PLATFORM} -C ${S} fiptool
+    if ${@bb.utils.contains('MACHINE_FEATURES', 'optee', 'true', 'false', d)}; then
+        if [ "${TFA_DTB}" = "ma35d1xx8" ]; then
+            oe_runmake PLAT=${PLATFORM} NEED_BL31=yes NEED_BL32=yes NEED_BL33=yes -C ${S} realclean
+            oe_runmake PLAT=${PLATFORM} NEED_BL31=yes NEED_BL32=yes NEED_BL33=yes -C ${S} all
+            oe_runmake PLAT=${PLATFORM} NEED_BL31=yes NEED_BL32=yes NEED_BL33=yes -C ${S} fiptool
+        elif [ "${TFA_DTB}" = "ma35d1xx7" ]; then
+            oe_runmake PLAT=${PLATFORM} NEED_BL31=yes NEED_BL32=yes BL32_BASE=0x87800000 NEED_BL33=yes -C ${S} realclean
+            oe_runmake PLAT=${PLATFORM} NEED_BL31=yes NEED_BL32=yes BL32_BASE=0x87800000 NEED_BL33=yes -C ${S} all
+            oe_runmake PLAT=${PLATFORM} NEED_BL31=yes NEED_BL32=yes BL32_BASE=0x87800000 NEED_BL33=yes -C ${S} fiptool
+        fi
+    else
+       oe_runmake PLAT=${PLATFORM} -C ${S} realclean
+       oe_runmake PLAT=${PLATFORM} -C ${S} all
+       oe_runmake PLAT=${PLATFORM} -C ${S} fiptool
+    fi
 }
 
 do_deploy() {

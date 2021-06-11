@@ -17,11 +17,11 @@ SRCBRANCH = "2020.07"
 SRC_URI = "${UBOOT_SRC}"
 SRCREV = "master"
 
-SRC_URI += " file://uEnv-${MACHINE}-spinand.txt \
-             file://uEnv-${MACHINE}-spinand-ubi.cfg \
-             file://uEnv-${MACHINE}-nand.txt \
-             file://uEnv-${MACHINE}-nand-ubi.cfg \
-             file://uEnv-${MACHINE}-sdcard.txt \
+SRC_URI += " file://uEnv-spinand.txt \
+             file://uEnv-spinand-ubi.cfg \
+             file://uEnv-nand.txt \
+             file://uEnv-nand-ubi.cfg \
+             file://uEnv-sdcard.txt \
            "
 
 PV = "${SRCBRANCH}"
@@ -40,7 +40,18 @@ do_compile_append() {
                 if [ $j -eq $i ]
                 then
                     if [ -n "${UBOOT_INITIAL_ENV}" ]; then
-                        cp ${WORKDIR}/uEnv-${MACHINE}-${type}.txt ${B}/${config}/u-boot-initial-env-${type}
+                        cp ${WORKDIR}/uEnv-${type}.txt ${B}/${config}/u-boot-initial-env-${type}
+                        if [ "${TFA_DTB}" = "ma35d1xx8" ]; then
+                            if ${@bb.utils.contains('MACHINE_FEATURES', 'optee', 'true', 'false', d)}; then
+                                sed -i "s/mem=256M/mem=248M/1" ${B}/${config}/u-boot-initial-env-${type}
+                            fi
+                        elif  [ "${TFA_DTB}" = "ma35d1xx7" ]; then
+                            sed -i "s/mem=256M/mem=128M/1" ${B}/${config}/u-boot-initial-env-${type}
+                            if ${@bb.utils.contains('MACHINE_FEATURES', 'optee', 'true', 'false', d)}; then
+                                sed -i "s/mem=128M/mem=220M/1" ${B}/${config}/u-boot-initial-env-${type}
+                            fi
+                        fi
+
                         ${B}/${config}/tools/mkenvimage -s 0x10000 -o ${B}/${config}/u-boot-initial-env.bin-${type} ${B}/${config}/u-boot-initial-env-${type}
                     fi
                 fi
@@ -65,9 +76,9 @@ do_deploy_append() {
                     fi
                 fi
                 if [ "${type}" = "spinand" ]; then
-                   cp ${WORKDIR}/uEnv-${MACHINE}-spinand-ubi.cfg ${DEPLOY_DIR_IMAGE}/u-boot-initial-env-spinand-ubi.cfg
+                   cp ${WORKDIR}/uEnv-spinand-ubi.cfg ${DEPLOY_DIR_IMAGE}/u-boot-initial-env-spinand-ubi.cfg
                 elif [ "${type}" = "nand" ]; then
-                   cp ${WORKDIR}/uEnv-${MACHINE}-nand-ubi.cfg ${DEPLOY_DIR_IMAGE}/u-boot-initial-env-nand-ubi.cfg
+                   cp ${WORKDIR}/uEnv-nand-ubi.cfg ${DEPLOY_DIR_IMAGE}/u-boot-initial-env-nand-ubi.cfg
                 fi
             done
             unset  j

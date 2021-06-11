@@ -8,5 +8,5 @@ stderr=serial
 stdin=serial
 stdout=serial
 bootargs=noinitrd ubi.mtd=4 root=ubi0:rootfs rootfstype=ubifs rw rootwait=1 console=ttyS0,115200n8 rdinit=/sbin/init mem=256M
-bootcmd=dcache off\;nand read 0x80080000 0x300000 0xb00000\;nand read 0x85000000 0x2C0000 0x10000\;booti 0x80080000 - 0x85000000
+bootcmd=dcache off\;nand read 0x80080000 0x400000 0xA00000\;nand read 0x85000000 0x3C0000 0x10000\;booti 0x80080000 - 0x85000000
 device=nand

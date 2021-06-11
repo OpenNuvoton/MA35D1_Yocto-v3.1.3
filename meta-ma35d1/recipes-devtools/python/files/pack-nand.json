@@ -28,22 +28,22 @@
           "type": 1
         },
         {
-          "offset": "0x200000",
+          "offset": "0x300000",
           "file": "u-boot-initial-env.bin-nand",
           "type": 1
         },
         {
-          "offset": "0x2C0000",
+          "offset": "0x3C0000",
           "file": "Image.dtb",
           "type": 1
         },
         {
-          "offset": "0x300000",
+          "offset": "0x400000",
           "file": "Image",
           "type": 1
 	},
         {
-          "offset": "0xE00000",
+          "offset": "0x1000000",
           "file": "rootfs.ubi-nand",
           "type": 1
         }

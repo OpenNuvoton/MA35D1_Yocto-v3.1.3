@@ -42,7 +42,7 @@
 		    "type": 0
 	    },
 	    {
-		    "offset": "0x200000",
+		    "offset": "0x300000",
 		    "file": "Image",
 		    "type": 0
 	    },
