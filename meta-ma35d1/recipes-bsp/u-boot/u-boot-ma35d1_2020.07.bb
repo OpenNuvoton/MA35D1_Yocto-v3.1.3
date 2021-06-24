@@ -46,9 +46,12 @@ do_compile_append() {
                                 sed -i "s/mem=256M/mem=248M/1" ${B}/${config}/u-boot-initial-env-${type}
                             fi
                         elif  [ "${TFA_DTB}" = "ma35d1xx7" ]; then
+                            if [ "${type}" = "sdcard" ]; then
+                                sed -i "s/root=\/dev\/mmcblk1p1/root=\/dev\/mmcblk0p1/1" ${B}/${config}/u-boot-initial-env-${type}
+                            fi
                             sed -i "s/mem=256M/mem=128M/1" ${B}/${config}/u-boot-initial-env-${type}
                             if ${@bb.utils.contains('MACHINE_FEATURES', 'optee', 'true', 'false', d)}; then
-                                sed -i "s/mem=128M/mem=220M/1" ${B}/${config}/u-boot-initial-env-${type}
+                                sed -i "s/mem=128M/mem=120M/1" ${B}/${config}/u-boot-initial-env-${type}
                             fi
                         fi
 

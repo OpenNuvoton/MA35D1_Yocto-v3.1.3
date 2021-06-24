@@ -22,10 +22,12 @@ KERNEL_SRC ?= "git://github.com/OpenNuvoton/MA35D1_linux-5.4.y.git;protocol=http
 SRC_URI = "${KERNEL_SRC}"
 
 SRC_URI += " \
+    file://optee.config \
     file://cfg80211.config \
     file://8189es.ko \
     file://8192es.ko \
     "
+
 
 SRC_URI += "${@bb.utils.contains('DISTRO_FEATURES', '8189es', ' file://8189es.ko', '', d)}"
 SRC_URI += "${@bb.utils.contains('DISTRO_FEATURES', '8192es', ' file://8192es.ko', '', d)}"
@@ -46,6 +48,10 @@ do_configure_prepend() {
     bbnote "Copying defconfig"
     cp ${S}/arch/${ARCH}/configs/${KERNEL_DEFCONFIG} ${WORKDIR}/defconfig
     cat ${WORKDIR}/cfg80211.config >> ${WORKDIR}/defconfig
+
+    if ${@bb.utils.contains('MACHINE_FEATURES', 'optee', 'true', 'false', d)}; then
+        cat ${WORKDIR}/optee.config >> ${WORKDIR}/defconfig
+    fi
 }
 
 do_deploy_append() {
@@ -63,4 +69,7 @@ do_install_append() {
 }
 
 
+FILES_${PN} += "${base_libdir}/modules/${PV}/${@bb.utils.contains('DISTRO_FEATURES', '8189es', '8189es.ko', '', d)}"
+FILES_${PN} += "${base_libdir}/modules/${PV}/${@bb.utils.contains('DISTRO_FEATURES', '8192es', '8192es.ko', '', d)}"
 COMPATIBLE_MACHINE = "(ma35d1)"
+
