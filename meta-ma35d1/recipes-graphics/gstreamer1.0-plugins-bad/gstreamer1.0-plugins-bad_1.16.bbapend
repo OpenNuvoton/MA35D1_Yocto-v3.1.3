@@ -1,0 +1,2 @@
+FILESEXTRAPATHS_prepend := "$THISDIR"
+SRC_URI += " files://0001-Nuvoton-update-for-fbdevsink-and-add-nufbdevsink.patch "
