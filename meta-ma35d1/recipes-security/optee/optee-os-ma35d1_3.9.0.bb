@@ -55,6 +55,15 @@ do_compile(){
 	fi
 }
 
+do_install(){
+	install -d ${D}/usr/include/optee/export-user_ta/
+
+	for f in  ${B}/export-ta_arm64/* ; do
+		cp -aR  $f  ${D}/usr/include/optee/export-user_ta/
+	done
+
+}
+
 OPTEE_BOOTCHAIN = "optee"
 OPTEE_HEADER    = "tee-header_v2"
 OPTEE_PAGEABLE  = "tee-pageable_v2"
@@ -72,3 +81,4 @@ do_deploy() {
 }
 addtask deploy before do_build after do_compile
 
+INSANE_SKIP_${PN}-dev = "staticdev"
