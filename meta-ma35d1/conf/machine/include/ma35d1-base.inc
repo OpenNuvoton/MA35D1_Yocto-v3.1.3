@@ -8,7 +8,7 @@ MACHINEOVERRIDES = "ma35d1"
 # =========================================================================
 # Chip architecture
 # =========================================================================
-DEFAULTTUNE_ma35d1 = "cortexa35"
+DEFAULTTUNE_ma35d1 = "cortexa35-crypto"
 include conf/machine/include/tune-cortexa35.inc
 
 # =========================================================================
