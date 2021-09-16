@@ -167,11 +167,11 @@ IMAGE_CMD_sdcard() {
         # 0x30000
         dd if=${DEPLOY_DIR_IMAGE}/bl2-ma35d1.bin of=${SDCARD} conv=notrunc seek=384 bs=512
         # 0x40000
-        dd if=${DEPLOY_DIR_IMAGE}/$(basename ${KERNEL_DEVICETREE}) of=${SDCARD} conv=notrunc seek=512 bs=512
-        # 0x80000
-        dd if=${DEPLOY_DIR_IMAGE}/u-boot-initial-env.bin-sdcard of=${SDCARD} conv=notrunc seek=1024 bs=512
-        # 0x100000
-        dd if=${DEPLOY_DIR_IMAGE}/fip.bin-sdcard of=${SDCARD} conv=notrunc seek=2048 bs=512
+        dd if=${DEPLOY_DIR_IMAGE}/u-boot-initial-env.bin-sdcard of=${SDCARD} conv=notrunc seek=512 bs=512
+        # 0xC0000
+        dd if=${DEPLOY_DIR_IMAGE}/fip.bin-sdcard of=${SDCARD} conv=notrunc seek=1536 bs=512
+        # 0x2c0000
+        dd if=${DEPLOY_DIR_IMAGE}/$(basename ${KERNEL_DEVICETREE}) of=${SDCARD} conv=notrunc seek=5632 bs=512
         # 0x300000
         dd if=${DEPLOY_DIR_IMAGE}/Image-${MACHINE}.bin of=${SDCARD} conv=notrunc seek=6144 bs=512
         # root fs

@@ -77,9 +77,9 @@ SDCARD_FREE_SIZE ?="0"
 
 # Use the expected value of the ubifs filesystem's volume name in the kernel
 UBI_VOLNAME ?= "rootfs"
-# The biggest NANDs on current modules are 110MB.
+# The biggest NANDs on current modules are 100MB.
 # This sums up to 2048 LEBs available for the ubifs (-c)
-MKUBIFS_ARGS ?= "-F -m 2048 -e 126976 -c 732"
+MKUBIFS_ARGS ?= "-F -m 2048 -e 126976 -c 800"
 UBINIZE_ARGS ?= "-m 2048 -p 128KiB -s 2048 -O 2048"
 
 

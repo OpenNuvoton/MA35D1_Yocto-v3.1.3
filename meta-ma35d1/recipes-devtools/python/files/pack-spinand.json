@@ -43,7 +43,7 @@
           "type": 1
 	},
         {
-          "offset": "0x1000000",
+          "offset": "0x1C00000",
           "file": "rootfs.ubi-spinand",
           "type": 1
         }

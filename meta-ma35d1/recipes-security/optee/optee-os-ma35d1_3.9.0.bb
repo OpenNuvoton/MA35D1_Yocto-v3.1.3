@@ -48,10 +48,12 @@ export PLATFORM = "${OPTEE_PLATFORM}"
 export PLATFORM_FLAVOR = "${OPTEE_PLATFORM_FLAVOR}"
 
 do_compile(){
-	if [ "${TFA_DTB}" = "ma35d1xx8" ]; then
-		oe_runmake -C ${S} O=${B}
-	elif [ "${TFA_DTB}" = "ma35d1xx7" ]; then
-		oe_runmake CFG_TZDRAM_START=0x87900000 CFG_SHMEM_START=0x87800000 -C ${S} O=${B}
+	if [ "${TFA_DTB}" = "ma35d1xx7" ]; then
+            oe_runmake CFG_TZDRAM_START=0x87900000 CFG_SHMEM_START=0x87800000 -C ${S} O=${B}
+        elif [ "${TFA_DTB}" = "ma35d1xx0" ]; then
+            oe_runmake CFG_TZDRAM_START=0x9F900000 CFG_SHMEM_START=0x9F800000 -C ${S} O=${B}
+	else
+            oe_runmake -C ${S} O=${B}
 	fi
 }
 
