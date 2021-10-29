@@ -56,6 +56,9 @@ do_compile_append() {
                             if [ "${config}" = "ma35d1_sdcard0_defconfig" ]; then
                                 sed -i "s/mmc_block=mmcblk1p1/mmc_block=mmcblk0p1/1" ${B}/${config}/u-boot-initial-env-${type}
                             fi
+                            if [ "${MACHINE}" = "ma35d1-iot" ]; then
+                                sed -i "s/mmc_block=mmcblk1p1/mmc_block=mmcblk0p1/1" ${B}/${config}/u-boot-initial-env-${type}
+                            fi
                         fi
 
                         ${B}/${config}/tools/mkenvimage -s 0x10000 -o ${B}/${config}/u-boot-initial-env.bin-${type} ${B}/${config}/u-boot-initial-env-${type}
