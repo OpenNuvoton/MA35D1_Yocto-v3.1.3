@@ -55,7 +55,12 @@ do_configure_prepend() {
 }
 
 do_deploy_append() {
-    ln -sf ${MACHINE}.dtb ${DEPLOYDIR}/Image.dtb
+    for dtbf in ${KERNEL_DEVICETREE}; do
+        dtb=`normalize_dtb "$dtbf"`
+        dtb_ext=${dtb##*.}
+        dtb_base_name=`basename $dtb .$dtb_ext`
+	ln -sf $dtb_base_name.dtb ${DEPLOYDIR}/Image.dtb
+    done
 }
 
 do_install_append() {

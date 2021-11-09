@@ -50,6 +50,11 @@ do_compile_append() {
                             if ${@bb.utils.contains('MACHINE_FEATURES', 'optee', 'true', 'false', d)}; then
                                 sed -i "s/kernelmem=128M/kernelmem=120M/1" ${B}/${config}/u-boot-initial-env-${type}
                             fi
+                        elif  [ "${TFA_DTB}" = "ma35d1xx0-mt-1gb" ]; then
+                            sed -i "s/kernelmem=256M/kernelmem=1024M/1" ${B}/${config}/u-boot-initial-env-${type}
+                            if ${@bb.utils.contains('MACHINE_FEATURES', 'optee', 'true', 'false', d)}; then
+                                sed -i "s/kernelmem=1024M/kernelmem=1016M/1" ${B}/${config}/u-boot-initial-env-${type}
+                            fi
                         fi
 
                         if [ "${type}" = "sdcard" ]; then

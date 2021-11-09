@@ -3,6 +3,7 @@
 ma35d1-evb
 ma35d1-iot
 ma35d1-som
+ma35d1-som-1gb
 
 # Using repo to download source
 

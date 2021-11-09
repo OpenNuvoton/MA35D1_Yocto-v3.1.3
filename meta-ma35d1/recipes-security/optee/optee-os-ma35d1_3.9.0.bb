@@ -52,6 +52,8 @@ do_compile(){
             oe_runmake CFG_TZDRAM_START=0x87900000 CFG_SHMEM_START=0x87800000 -C ${S} O=${B}
         elif [ "${TFA_DTB}" = "ma35d1xx0" ]; then
             oe_runmake CFG_TZDRAM_START=0x9F900000 CFG_SHMEM_START=0x9F800000 -C ${S} O=${B}
+        elif [ "${TFA_DTB}" = "ma35d1-som-1gb" ]; then
+            oe_runmake CFG_TZDRAM_START=0xAF900000 CFG_SHMEM_START=0xAF800000 -C ${S} O=${B}
 	else
             oe_runmake -C ${S} O=${B}
 	fi
