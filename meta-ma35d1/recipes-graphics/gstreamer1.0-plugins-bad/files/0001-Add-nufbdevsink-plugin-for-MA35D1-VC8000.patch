@@ -1,25 +1,22 @@
-From 6ccfdcdc8085d4670d7d1bf74fa6d9cfc00b1c8f Mon Sep 17 00:00:00 2001
-From: ms10 <ychuang3@nuvoton.com>
-Date: Mon, 28 Jun 2021 08:42:23 +0000
-Subject: [PATCH] Nuvoton update for fbdevsink and add nufbdevsink.
+From 3e8c85b05457d594621b662e86f1a9db1659a1e8 Mon Sep 17 00:00:00 2001
+From: "Y.C. Huang" <ychuang3@nuvoton.com>
+Date: Tue, 28 Dec 2021 15:59:58 +0800
+Subject: [PATCH] Add nufbdevsink plugin for MA35D1 VC8000.
 
 ---
  config.h.in                  |    5 +-
  configure                    |    5 +
  configure.ac                 |    4 +-
- m4/introspection.m4          |   96 +++
  meson_options.txt            |    1 +
  sys/Makefile.am              |   10 +-
  sys/Makefile.in              |    6 +-
- sys/fbdev/gstfbdevsink.c     |   10 +-
  sys/meson.build              |    1 +
  sys/nufbdev/Makefile.am      |   14 +
  sys/nufbdev/Makefile.in      | 1091 ++++++++++++++++++++++++++++++++++
- sys/nufbdev/gstnufbdevsink.c |  608 +++++++++++++++++++
- sys/nufbdev/gstnufbdevsink.h |  106 ++++
+ sys/nufbdev/gstnufbdevsink.c |  645 ++++++++++++++++++++
+ sys/nufbdev/gstnufbdevsink.h |  109 ++++
  sys/nufbdev/meson.build      |   24 +
- 14 files changed, 1974 insertions(+), 7 deletions(-)
- create mode 100644 m4/introspection.m4
+ 12 files changed, 1909 insertions(+), 6 deletions(-)
  create mode 100644 sys/nufbdev/Makefile.am
  create mode 100644 sys/nufbdev/Makefile.in
  create mode 100644 sys/nufbdev/gstnufbdevsink.c
@@ -101,108 +98,6 @@ index 5712e73..a98c8d5 100644
  sys/ipcpipeline/Makefile
  sys/kms/Makefile
  sys/msdk/Makefile
-diff --git a/m4/introspection.m4 b/m4/introspection.m4
-new file mode 100644
-index 0000000..b562266
---- /dev/null
-+++ b/m4/introspection.m4
-@@ -0,0 +1,96 @@
-+dnl -*- mode: autoconf -*-
-+dnl Copyright 2009 Johan Dahlin
-+dnl
-+dnl This file is free software; the author(s) gives unlimited
-+dnl permission to copy and/or distribute it, with or without
-+dnl modifications, as long as this notice is preserved.
-+dnl
-+
-+# serial 1
-+
-+m4_define([_GOBJECT_INTROSPECTION_CHECK_INTERNAL],
-+[
-+    AC_BEFORE([AC_PROG_LIBTOOL],[$0])dnl setup libtool first
-+    AC_BEFORE([AM_PROG_LIBTOOL],[$0])dnl setup libtool first
-+    AC_BEFORE([LT_INIT],[$0])dnl setup libtool first
-+
-+    dnl enable/disable introspection
-+    m4_if([$2], [require],
-+    [dnl
-+        enable_introspection=yes
-+    ],[dnl
-+        AC_ARG_ENABLE(introspection,
-+                  AS_HELP_STRING([--enable-introspection[=@<:@no/auto/yes@:>@]],
-+                                 [Enable introspection for this build]),, 
-+                                 [enable_introspection=auto])
-+    ])dnl
-+
-+    AC_MSG_CHECKING([for gobject-introspection])
-+
-+    dnl presence/version checking
-+    AS_CASE([$enable_introspection],
-+    [no], [dnl
-+        found_introspection="no (disabled, use --enable-introspection to enable)"
-+    ],dnl
-+    [yes],[dnl
-+        PKG_CHECK_EXISTS([gobject-introspection-1.0],,
-+                         AC_MSG_ERROR([gobject-introspection-1.0 is not installed]))
-+        PKG_CHECK_EXISTS([gobject-introspection-1.0 >= $1],
-+                         found_introspection=yes,
-+                         AC_MSG_ERROR([You need to have gobject-introspection >= $1 installed to build AC_PACKAGE_NAME]))
-+    ],dnl
-+    [auto],[dnl
-+        PKG_CHECK_EXISTS([gobject-introspection-1.0 >= $1], found_introspection=yes, found_introspection=no)
-+	dnl Canonicalize enable_introspection
-+	enable_introspection=$found_introspection
-+    ],dnl
-+    [dnl	
-+        AC_MSG_ERROR([invalid argument passed to --enable-introspection, should be one of @<:@no/auto/yes@:>@])
-+    ])dnl
-+
-+    AC_MSG_RESULT([$found_introspection])
-+
-+    INTROSPECTION_SCANNER=
-+    INTROSPECTION_COMPILER=
-+    INTROSPECTION_GENERATE=
-+    INTROSPECTION_GIRDIR=
-+    INTROSPECTION_TYPELIBDIR=
-+    if test "x$found_introspection" = "xyes"; then
-+       INTROSPECTION_SCANNER=$PKG_CONFIG_SYSROOT_DIR`$PKG_CONFIG --variable=g_ir_scanner gobject-introspection-1.0`
-+       INTROSPECTION_COMPILER=$PKG_CONFIG_SYSROOT_DIR`$PKG_CONFIG --variable=g_ir_compiler gobject-introspection-1.0`
-+       INTROSPECTION_GENERATE=$PKG_CONFIG_SYSROOT_DIR`$PKG_CONFIG --variable=g_ir_generate gobject-introspection-1.0`
-+       INTROSPECTION_GIRDIR=`$PKG_CONFIG --variable=girdir gobject-introspection-1.0`
-+       INTROSPECTION_TYPELIBDIR="$($PKG_CONFIG --variable=typelibdir gobject-introspection-1.0)"
-+       INTROSPECTION_CFLAGS=`$PKG_CONFIG --cflags gobject-introspection-1.0`
-+       INTROSPECTION_LIBS=`$PKG_CONFIG --libs gobject-introspection-1.0`
-+       INTROSPECTION_MAKEFILE=$PKG_CONFIG_SYSROOT_DIR`$PKG_CONFIG --variable=datadir gobject-introspection-1.0`/gobject-introspection-1.0/Makefile.introspection
-+    fi
-+    AC_SUBST(INTROSPECTION_SCANNER)
-+    AC_SUBST(INTROSPECTION_COMPILER)
-+    AC_SUBST(INTROSPECTION_GENERATE)
-+    AC_SUBST(INTROSPECTION_GIRDIR)
-+    AC_SUBST(INTROSPECTION_TYPELIBDIR)
-+    AC_SUBST(INTROSPECTION_CFLAGS)
-+    AC_SUBST(INTROSPECTION_LIBS)
-+    AC_SUBST(INTROSPECTION_MAKEFILE)
-+
-+    AM_CONDITIONAL(HAVE_INTROSPECTION, test "x$found_introspection" = "xyes")
-+])
-+
-+
-+dnl Usage:
-+dnl   GOBJECT_INTROSPECTION_CHECK([minimum-g-i-version])
-+
-+AC_DEFUN([GOBJECT_INTROSPECTION_CHECK],
-+[
-+  _GOBJECT_INTROSPECTION_CHECK_INTERNAL([$1])
-+])
-+
-+dnl Usage:
-+dnl   GOBJECT_INTROSPECTION_REQUIRE([minimum-g-i-version])
-+
-+
-+AC_DEFUN([GOBJECT_INTROSPECTION_REQUIRE],
-+[
-+  _GOBJECT_INTROSPECTION_CHECK_INTERNAL([$1], [require])
-+])
 diff --git a/meson_options.txt b/meson_options.txt
 index 3a9aa93..c5ba956 100644
 --- a/meson_options.txt
@@ -267,46 +162,6 @@ index 2661f5d..30be4dd 100644
 +DIST_SUBDIRS = androidmedia applemedia bluez d3dvideosink decklink directsound dvb fbdev nufbdev ipcpipeline kms dshowdecwrapper dshowsrcwrapper dshowvideosink \
  		opensles shm uvch264 vdpau wasapi winks winscreencap \
  		nvdec nvenc tinyalsa msdk
- 
-diff --git a/sys/fbdev/gstfbdevsink.c b/sys/fbdev/gstfbdevsink.c
-index 166c543..ff29708 100644
---- a/sys/fbdev/gstfbdevsink.c
-+++ b/sys/fbdev/gstfbdevsink.c
-@@ -261,10 +261,15 @@ gst_fbdevsink_show_frame (GstVideoSink * videosink, GstBuffer * buf)
- {
- 
-   GstFBDEVSink *fbdevsink;
-+  struct fb_var_screeninfo *var;
-   GstMapInfo map;
-+  unsigned char *fb_addr;
-   int i;
- 
-   fbdevsink = GST_FBDEVSINK (videosink);
-+  var = &fbdevsink->varinfo;
-+  
-+  fb_addr = (char *)(fbdevsink->framebuffer + var->yoffset * var->xres * var->bits_per_pixel / 8);
- 
-   /* optimization could remove this memcpy by allocating the buffer
-      in framebuffer memory, but would only work when xres matches
-@@ -272,8 +277,9 @@ gst_fbdevsink_show_frame (GstVideoSink * videosink, GstBuffer * buf)
-   if (!gst_buffer_map (buf, &map, GST_MAP_READ))
-     return GST_FLOW_ERROR;
- 
-+printf("Show\n");
-   for (i = 0; i < fbdevsink->lines; i++) {
--    memcpy (fbdevsink->framebuffer
-+    memcpy (fb_addr
-         + (i + fbdevsink->cy) * fbdevsink->fixinfo.line_length
-         + fbdevsink->cx * fbdevsink->bytespp,
-         map.data + i * fbdevsink->width * fbdevsink->bytespp,
-@@ -315,6 +321,8 @@ gst_fbdevsink_start (GstBaseSink * bsink)
-   if (fbdevsink->framebuffer == MAP_FAILED)
-     return FALSE;
- 
-+  ioctl(fbdevsink->fd, FBIOPAN_DISPLAY, &fbdevsink->varinfo);
-+
-   return TRUE;
- }
  
 diff --git a/sys/meson.build b/sys/meson.build
 index ba717da..d67d57b 100644
@@ -1439,12 +1294,15 @@ index 0000000..0da09c5
 +.NOEXPORT:
 diff --git a/sys/nufbdev/gstnufbdevsink.c b/sys/nufbdev/gstnufbdevsink.c
 new file mode 100644
-index 0000000..9ae345d
+index 0000000..47d1ff9
 --- /dev/null
 +++ b/sys/nufbdev/gstnufbdevsink.c
-@@ -0,0 +1,608 @@
-+/* GStreamer nufbdev plugin
-+ * Copyright (C) 2007 Sean D'Epagnier <sean@depagnier.com>
+@@ -0,0 +1,645 @@
++/* GStreamer
++ * Copyright (C) <1999> Erik Walthinsen <omega@cse.ogi.edu>
++ * This file:
++ * Copyright (C) 2003 Ronald Bultje <rbultje@ronald.bitfreak.net>
++ * Copyright (C) 2010 David Schleef <ds@schleef.org>
 + *
 + * This library is free software; you can redistribute it and/or
 + * modify it under the terms of the GNU Library General Public
@@ -1462,13 +1320,22 @@ index 0000000..9ae345d
 + * Boston, MA 02110-1301, USA.
 + */
 +
-+/* currently the driver does not switch modes, instead uses current mode.
-+   the video is centered and cropped if needed to fit onscreen.
-+   Whatever bitdepth is set is used, and tested to work for 16, 24, 32 bits
-+*/
++/**
++ * SECTION:element-nufbdevsink
++ * @title: nufbdevsink
++ *
++ * Convert video frames between a great variety of video formats.
++ *
++ * ## Example launch line
++ * |[
++ * gst-launch-1.0 -v gst-launch-1.0 filesrc location=./example.264 ! decodebin ! nufbdevsink
++ * ]|
++ *  This will directly output the VC8000 H264 + PP result image to frame buffer device.
++ *
++ */
 +
 +#ifdef HAVE_CONFIG_H
-+#include "config.h"
++#  include "config.h"
 +#endif
 +
 +#include <stdio.h>
@@ -1494,571 +1361,598 @@ index 0000000..9ae345d
 +
 +#include <linux/videodev2.h>
 +
-+#define ENABLE_LOCAL_DEBUG
++#include <gst/video/video.h>
++#include <gst/video/gstvideometa.h>
++#include <gst/video/gstvideopool.h>
 +
-+#ifdef ENABLE_LOCAL_DEBUG
-+#define debug_msg     printf
-+#else
-+#define debug_msg(...)
-+#endif
++#include <string.h>
++
++GST_DEBUG_CATEGORY (nufbdevsink_debug);
++#define GST_CAT_DEFAULT nufbdevsink_debug
++GST_DEBUG_CATEGORY_STATIC (CAT_PERFORMANCE);
++
++GType gst_nufbdevsink_get_type (void);
++
++static GQuark _colorspace_quark;
++
++#define gst_nufbdevsink_parent_class parent_class
++G_DEFINE_TYPE (GstVideoConvert, gst_nufbdevsink, GST_TYPE_VIDEO_FILTER);
++
++#define DEFAULT_PROP_DITHER      GST_VIDEO_DITHER_BAYER
++#define DEFAULT_PROP_DITHER_QUANTIZATION 1
++#define DEFAULT_PROP_CHROMA_RESAMPLER	GST_VIDEO_RESAMPLER_METHOD_LINEAR
++#define DEFAULT_PROP_ALPHA_MODE GST_VIDEO_ALPHA_MODE_COPY
++#define DEFAULT_PROP_ALPHA_VALUE 1.0
++#define DEFAULT_PROP_CHROMA_MODE GST_VIDEO_CHROMA_MODE_FULL
++#define DEFAULT_PROP_MATRIX_MODE GST_VIDEO_MATRIX_MODE_FULL
++#define DEFAULT_PROP_GAMMA_MODE GST_VIDEO_GAMMA_MODE_NONE
++#define DEFAULT_PROP_PRIMARIES_MODE GST_VIDEO_PRIMARIES_MODE_NONE
++#define DEFAULT_PROP_N_THREADS 1
++#define DEFAULT_PROP_X_POS 0
++#define DEFAULT_PROP_Y_POS 0
++#define DEFAULT_PROP_WIDTH 1024
++#define DEFAULT_PROP_HEIGHT 600
++#define DEFAULT_PROP_ROTATE 0
 +
 +enum
 +{
-+  ARG_0,
-+  ARG_DEVICE
++  PROP_0,
++  PROP_DITHER,
++  PROP_DITHER_QUANTIZATION,
++  PROP_CHROMA_RESAMPLER,
++  PROP_ALPHA_MODE,
++  PROP_ALPHA_VALUE,
++  PROP_CHROMA_MODE,
++  PROP_MATRIX_MODE,
++  PROP_GAMMA_MODE,
++  PROP_PRIMARIES_MODE,
++  PROP_N_THREADS,
++  PROP_X_POS,
++  PROP_Y_POS,
++  PROP_WIDTH,
++  PROP_HEIGHT,
++  PROP_ROTATE
 +};
 +
++#define CSP_VIDEO_CAPS GST_VIDEO_CAPS_MAKE (GST_VIDEO_FORMATS_ALL) ";" \
++    GST_VIDEO_CAPS_MAKE_WITH_FEATURES ("ANY", GST_VIDEO_FORMATS_ALL)
 +
-+typedef struct _GstCapsArrayElement
-+{
-+  GstStructure *structure;
-+  GstCapsFeatures *features;
-+} GstCapsArrayElement;
-+
-+typedef struct _GstCapsImpl
-+{
-+  GstCaps caps;
-+
-+  GArray *array;
-+} GstCapsImpl;
-+
-+#define GST_CAPS_ARRAY(c) (((GstCapsImpl *)(c))->array)
-+
-+#define GST_CAPS_LEN(c)   (GST_CAPS_ARRAY(c)->len)
-+
-+
-+
-+
-+#if 0
-+static void gst_nufbdevsink_get_times (GstBaseSink * basesink,
-+    GstBuffer * buffer, GstClockTime * start, GstClockTime * end);
-+#endif
-+
-+
-+
-+static GstFlowReturn gst_nufbdevsink_show_frame (GstVideoSink * videosink,
-+    GstBuffer * buff);
-+
-+static gboolean gst_nufbdevsink_start (GstBaseSink * bsink);
-+static gboolean gst_nufbdevsink_stop (GstBaseSink * bsink);
-+
-+static GstCaps *gst_nufbdevsink_getcaps (GstBaseSink * bsink, GstCaps * filter);
-+static gboolean gst_nufbdevsink_setcaps (GstBaseSink * bsink, GstCaps * caps);
-+
-+static void gst_nufbdevsink_finalize (GObject * object);
-+static void gst_nufbdevsink_set_property (GObject * object,
-+    guint prop_id, const GValue * value, GParamSpec * pspec);
-+static void gst_nufbdevsink_get_property (GObject * object,
-+    guint prop_id, GValue * value, GParamSpec * pspec);
-+static GstStateChangeReturn gst_nufbdevsink_change_state (GstElement * element,
-+    GstStateChange transition);
-+
-+#define VIDEO_CAPS "{ I420, NV12, RGB, BGR, BGRx, xBGR, RGB, RGBx, ARGB, RGB16 }"
-+
-+static GstStaticPadTemplate sink_template = GST_STATIC_PAD_TEMPLATE ("sink",
-+    GST_PAD_SINK,
++static GstStaticPadTemplate gst_video_convert_src_template =
++GST_STATIC_PAD_TEMPLATE ("src",
++    GST_PAD_SRC,
 +    GST_PAD_ALWAYS,
-+    GST_STATIC_CAPS (GST_VIDEO_CAPS_MAKE (VIDEO_CAPS))
++    GST_STATIC_CAPS (CSP_VIDEO_CAPS)
 +    );
 +
-+#define parent_class gst_nufbdevsink_parent_class
-+G_DEFINE_TYPE (GstNUFBDEVSink, gst_nufbdevsink, GST_TYPE_VIDEO_SINK);
++static GstStaticPadTemplate gst_nufbdevsink_sink_template =
++GST_STATIC_PAD_TEMPLATE ("sink",
++    GST_PAD_SINK,
++    GST_PAD_ALWAYS,
++    GST_STATIC_CAPS (CSP_VIDEO_CAPS)
++    );
++
++static void gst_nufbdevsink_set_property (GObject * object,
++    guint property_id, const GValue * value, GParamSpec * pspec);
++static void gst_nufbdevsink_get_property (GObject * object,
++    guint property_id, GValue * value, GParamSpec * pspec);
++
++static gboolean gst_nufbdevsink_set_info (GstVideoFilter * filter,
++    GstCaps * incaps, GstVideoInfo * in_info, GstCaps * outcaps,
++    GstVideoInfo * out_info);
++static GstFlowReturn gst_nufbdevsink_transform_frame (GstVideoFilter * filter,
++    GstVideoFrame * in_frame, GstVideoFrame * out_frame);
++
++/* copies the given caps */
++static GstCaps *
++gst_nufbdevsink_caps_remove_format_info (GstCaps * caps)
++{
++  GstStructure *st;
++  GstCapsFeatures *f;
++  gint i, n;
++  GstCaps *res;
++
++  res = gst_caps_new_empty ();
++
++  n = gst_caps_get_size (caps);
++  for (i = 0; i < n; i++) {
++    st = gst_caps_get_structure (caps, i);
++    f = gst_caps_get_features (caps, i);
++
++    /* If this is already expressed by the existing caps
++     * skip this structure */
++    if (i > 0 && gst_caps_is_subset_structure_full (res, st, f))
++      continue;
++
++    st = gst_structure_copy (st);
++    /* Only remove format info for the cases when we can actually convert */
++    if (!gst_caps_features_is_any (f)
++        && gst_caps_features_is_equal (f,
++            GST_CAPS_FEATURES_MEMORY_SYSTEM_MEMORY))
++      gst_structure_remove_fields (st, "format", "colorimetry", "chroma-site",
++          NULL);
++
++    gst_caps_append_structure_full (res, st, gst_caps_features_copy (f));
++  }
++
++  return res;
++}
++
++/* The caps can be transformed into any other caps with format info removed.
++ * However, we should prefer passthrough, so if passthrough is possible,
++ * put it first in the list. */
++static GstCaps *
++gst_nufbdevsink_transform_caps (GstBaseTransform * btrans,
++    GstPadDirection direction, GstCaps * caps, GstCaps * filter)
++{
++  GstCaps *tmp, *tmp2;
++  GstCaps *result;
++  GstCaps *ret;
++  GstStructure *structure;
++  GstVideoInfo info;
++  GstCapsFeatures *features;
++  gint i, n;
++
++  GST_DEBUG_OBJECT (btrans,
++      "Transforming caps %" GST_PTR_FORMAT " in direction %s", caps,
++      (direction == GST_PAD_SINK) ? "sink" : "src");
++
++  ret = gst_caps_new_empty ();
++  n = gst_caps_get_size (caps);
++  for (i = 0; i < n; i++) {
++    structure = gst_caps_get_structure (caps, i);
++    features = gst_caps_get_features (caps, i);
++
++    /* If this is already expressed by the existing caps
++     * skip this structure */
++    if (i > 0 && gst_caps_is_subset_structure_full (ret, structure, features))
++      continue;
++
++    /* make copy */
++    structure = gst_structure_copy (structure);
++
++    /* If the features are non-sysmem we can only do passthrough */
++    if (!gst_caps_features_is_any (features)
++        && gst_caps_features_is_equal (features,
++            GST_CAPS_FEATURES_MEMORY_SYSTEM_MEMORY)) {
++      gst_structure_set (structure, "width", GST_TYPE_INT_RANGE, 1, G_MAXINT,
++          "height", GST_TYPE_INT_RANGE, 1, G_MAXINT, NULL);
++
++      /* if pixel aspect ratio, make a range of it */
++      if (gst_structure_has_field (structure, "pixel-aspect-ratio")) {
++        gst_structure_set (structure, "pixel-aspect-ratio",
++            GST_TYPE_FRACTION_RANGE, 1, G_MAXINT, G_MAXINT, 1, NULL);
++      }
++    }
++    gst_caps_append_structure_full (ret, structure,
++        gst_caps_features_copy (features));
++  }
++
++#if 1
++  if (filter) {
++    GstCaps *intersection;
++
++    intersection =
++        gst_caps_intersect_full (filter, ret, GST_CAPS_INTERSECT_FIRST);
++    gst_caps_unref (ret);
++    ret = intersection;
++  }
++
++  return ret;
++#else
++  /* Get all possible caps that we can transform to */
++  tmp = gst_nufbdevsink_caps_remove_format_info (caps);
++
++  if (filter) {
++    tmp2 = gst_caps_intersect_full (filter, tmp, GST_CAPS_INTERSECT_FIRST);
++    gst_caps_unref (tmp);
++    tmp = tmp2;
++  }
++
++  result = tmp;
++
++  GST_DEBUG_OBJECT (btrans, "transformed %" GST_PTR_FORMAT " into %"
++      GST_PTR_FORMAT, caps, result);
++
++  return result;
++#endif  
++}
++
++
++static gboolean
++gst_nufbdevsink_set_info (GstVideoFilter * filter,
++    GstCaps * incaps, GstVideoInfo * in_info, GstCaps * outcaps,
++    GstVideoInfo * out_info)
++{
++  GstVideoConvert *space;
++
++  space = GST_VIDEO_CONVERT_CAST (filter);
++
++  if (space->convert) {
++    gst_video_converter_free (space->convert);
++    space->convert = NULL;
++  }
++
++#if 0
++  space->convert = gst_video_converter_new (in_info, out_info,
++      gst_structure_new ("GstVideoConvertConfig",
++          GST_VIDEO_CONVERTER_OPT_DITHER_METHOD, GST_TYPE_VIDEO_DITHER_METHOD,
++          space->dither,
++          GST_VIDEO_CONVERTER_OPT_DITHER_QUANTIZATION, G_TYPE_UINT,
++          space->dither_quantization,
++          GST_VIDEO_CONVERTER_OPT_CHROMA_RESAMPLER_METHOD,
++          GST_TYPE_VIDEO_RESAMPLER_METHOD, space->chroma_resampler,
++          GST_VIDEO_CONVERTER_OPT_ALPHA_MODE,
++          GST_TYPE_VIDEO_ALPHA_MODE, space->alpha_mode,
++          GST_VIDEO_CONVERTER_OPT_ALPHA_VALUE,
++          G_TYPE_DOUBLE, space->alpha_value,
++          GST_VIDEO_CONVERTER_OPT_CHROMA_MODE,
++          GST_TYPE_VIDEO_CHROMA_MODE, space->chroma_mode,
++          GST_VIDEO_CONVERTER_OPT_MATRIX_MODE,
++          GST_TYPE_VIDEO_MATRIX_MODE, space->matrix_mode,
++          GST_VIDEO_CONVERTER_OPT_GAMMA_MODE,
++          GST_TYPE_VIDEO_GAMMA_MODE, space->gamma_mode,
++          GST_VIDEO_CONVERTER_OPT_PRIMARIES_MODE,
++          GST_TYPE_VIDEO_PRIMARIES_MODE, space->primaries_mode,
++          GST_VIDEO_CONVERTER_OPT_THREADS, G_TYPE_UINT,
++          space->n_threads, NULL));
++  if (space->convert == NULL)
++    goto no_convert;
++
++  GST_DEBUG ("reconfigured %d %d", GST_VIDEO_INFO_FORMAT (in_info),
++      GST_VIDEO_INFO_FORMAT (out_info));
++#endif
++
++  return TRUE;
++
++  /* ERRORS */
++format_mismatch:
++  {
++    GST_ERROR_OBJECT (space, "input and output formats do not match");
++    return FALSE;
++  }
++no_convert:
++  {
++    GST_ERROR_OBJECT (space, "could not create converter");
++    return FALSE;
++  }
++}
 +
 +static void
-+gst_nufbdevsink_init (GstNUFBDEVSink * nufbdevsink)
++gst_nufbdevsink_finalize (GObject * obj)
++{
++  GstVideoConvert *space = GST_VIDEO_CONVERT (obj);
++
++  if (space->framebuffer != NULL)
++    munmap (space->framebuffer, space->fixinfo.smem_len);
++  close (space->fd);
++  close(space->fd_vc8k);
++
++  if (space->convert) {
++    gst_video_converter_free (space->convert);
++  }
++
++  G_OBJECT_CLASS (parent_class)->finalize (obj);
++}
++
++static void
++gst_nufbdevsink_class_init (GstVideoConvertClass * klass)
++{
++  GObjectClass *gobject_class = (GObjectClass *) klass;
++  GstElementClass *gstelement_class = (GstElementClass *) klass;
++  GstBaseTransformClass *gstbasetransform_class =
++      (GstBaseTransformClass *) klass;
++  GstVideoFilterClass *gstvideofilter_class = (GstVideoFilterClass *) klass;
++
++  gobject_class->set_property = gst_nufbdevsink_set_property;
++  gobject_class->get_property = gst_nufbdevsink_get_property;
++  gobject_class->finalize = gst_nufbdevsink_finalize;
++
++  gst_element_class_add_static_pad_template (gstelement_class,
++      &gst_video_convert_src_template);
++  gst_element_class_add_static_pad_template (gstelement_class,
++      &gst_nufbdevsink_sink_template);
++
++  gst_element_class_set_static_metadata (gstelement_class,
++      "MA35D1 VC8000 fb render", "Filter/Converter/Video",
++      "Render MA35D1 VC8000 output image to frame buffer",
++      "Nuvoton");
++
++  gstbasetransform_class->transform_caps =
++      GST_DEBUG_FUNCPTR (gst_nufbdevsink_transform_caps);
++//  gstbasetransform_class->fixate_caps =
++//      GST_DEBUG_FUNCPTR (gst_video_convert_fixate_caps);
++//  gstbasetransform_class->filter_meta =
++//      GST_DEBUG_FUNCPTR (gst_video_convert_filter_meta);
++//  gstbasetransform_class->transform_meta =
++//      GST_DEBUG_FUNCPTR (gst_video_convert_transform_meta);
++
++  gstbasetransform_class->passthrough_on_same_caps = FALSE;
++
++  gstvideofilter_class->set_info =
++      GST_DEBUG_FUNCPTR (gst_nufbdevsink_set_info);
++  gstvideofilter_class->transform_frame =
++      GST_DEBUG_FUNCPTR (gst_nufbdevsink_transform_frame);
++
++  g_object_class_install_property (gobject_class, PROP_N_THREADS,
++      g_param_spec_uint ("n-threads", "Threads",
++          "Maximum number of threads to use", 0, G_MAXUINT,
++          DEFAULT_PROP_N_THREADS, G_PARAM_READWRITE | G_PARAM_STATIC_STRINGS));
++
++  g_object_class_install_property (gobject_class, PROP_X_POS,
++      g_param_spec_int ("x-pos", "X-Pos",
++          "X coordinate of frame buffer to render the output image", 0, 1920,
++          DEFAULT_PROP_X_POS,
++          G_PARAM_READWRITE | G_PARAM_STATIC_STRINGS | GST_PARAM_CONTROLLABLE));
++  g_object_class_install_property (gobject_class, PROP_Y_POS,
++      g_param_spec_int ("y-pos", "Y-Pos",
++          "Y coordinate of frame buffer to render the output image", 0, 1080,
++          DEFAULT_PROP_Y_POS, 
++          G_PARAM_READWRITE | G_PARAM_STATIC_STRINGS | GST_PARAM_CONTROLLABLE));
++  g_object_class_install_property (gobject_class, PROP_WIDTH,
++      g_param_spec_int ("width", "Width",
++          "Width of the VC8000 output image", 0, 1920,
++          DEFAULT_PROP_WIDTH, 
++          G_PARAM_READWRITE | G_PARAM_STATIC_STRINGS | GST_PARAM_CONTROLLABLE));
++  g_object_class_install_property (gobject_class, PROP_HEIGHT,
++      g_param_spec_int ("height", "Height",
++          "Height of the VC8000 output image", 0, 1088,
++          DEFAULT_PROP_HEIGHT,
++          G_PARAM_READWRITE | G_PARAM_STATIC_STRINGS | GST_PARAM_CONTROLLABLE));
++  g_object_class_install_property (gobject_class, PROP_ROTATE,
++      g_param_spec_int ("rotate", "Rotate",
++          "Rotation of the VC8000 output image", 0, 3,
++          DEFAULT_PROP_ROTATE,
++          G_PARAM_READWRITE | G_PARAM_STATIC_STRINGS | GST_PARAM_CONTROLLABLE));
++}
++
++static void
++gst_nufbdevsink_init (GstVideoConvert * space)
 +{
 +  struct vc8k_pp_params  *pp;
 +  char  dev_name[32];
 +  int   i;
 +
-+  debug_msg("%s\n", __func__);
++  printf("gst_nufbdevsink_init %s %s\n", __DATE__, __TIME__);
++  space->dither = DEFAULT_PROP_DITHER;
++  space->dither_quantization = DEFAULT_PROP_DITHER_QUANTIZATION;
++  space->chroma_resampler = DEFAULT_PROP_CHROMA_RESAMPLER;
++  space->alpha_mode = DEFAULT_PROP_ALPHA_MODE;
++  space->alpha_value = DEFAULT_PROP_ALPHA_VALUE;
++  space->chroma_mode = DEFAULT_PROP_CHROMA_MODE;
++  space->matrix_mode = DEFAULT_PROP_MATRIX_MODE;
++  space->gamma_mode = DEFAULT_PROP_GAMMA_MODE;
++  space->primaries_mode = DEFAULT_PROP_PRIMARIES_MODE;
++  space->n_threads = DEFAULT_PROP_N_THREADS;
 +
-+  if (!nufbdevsink->device) {
-+    nufbdevsink->device = g_strdup ("/dev/fb0");
++  if (!space->device) {
++    space->device = g_strdup ("/dev/fb0");
 +  }
-+  nufbdevsink->fd = open (nufbdevsink->device, O_RDWR);
++  space->fd = open (space->device, O_RDWR);
 +
-+  if (nufbdevsink->fd == -1)
++  if (space->fd == -1)
 +    return;
 +
 +  /* get the fixed screen info */
-+  if (ioctl (nufbdevsink->fd, FBIOGET_FSCREENINFO, &nufbdevsink->fixinfo))
-+    goto err_out;
++  if (ioctl (space->fd, FBIOGET_FSCREENINFO, &space->fixinfo)) {
++    close(space->fd);
++    return;
++  }
 +
 +  /* get the variable screen info */
-+  if (ioctl (nufbdevsink->fd, FBIOGET_VSCREENINFO, &nufbdevsink->varinfo))
-+    goto err_out;
++  if (ioctl (space->fd, FBIOGET_VSCREENINFO, &space->varinfo)) {
++    close(space->fd);
++    return;
++  }
++
++  space->format = GST_VIDEO_FORMAT_ARGB;   /* hard fix to ARGB */
 +
 +  /* map the framebuffer */
-+  nufbdevsink->framebuffer = mmap (0, nufbdevsink->fixinfo.smem_len,
-+      PROT_WRITE, MAP_SHARED, nufbdevsink->fd, 0);
-+  if (nufbdevsink->framebuffer == MAP_FAILED)
-+    goto err_out;
-+    
-+  nufbdevsink->format = GST_VIDEO_FORMAT_ARGB;   /* hard fix to ARGB */
++  space->framebuffer = mmap (0, space->fixinfo.smem_len,
++      PROT_WRITE, MAP_SHARED, space->fd, 0);
++  if (space->framebuffer == MAP_FAILED)
++    space->framebuffer = NULL;
 +
-+  ioctl(nufbdevsink->fd, FBIOPAN_DISPLAY, &nufbdevsink->varinfo);
++  ioctl(space->fd, FBIOPAN_DISPLAY, &space->varinfo);
 +
 +  /*-----------------------------------------------*/
 +  /*  VC8000 PP control                            */
 +  /*-----------------------------------------------*/
-+  pp = &nufbdevsink->pp;
++  pp = &space->pp;
 +  pp->enable_pp = 1;
-+  pp->frame_buf_w = nufbdevsink->varinfo.xres;
-+  pp->frame_buf_h = nufbdevsink->varinfo.yres;
++  pp->frame_buf_w = space->varinfo.xres;
++  pp->frame_buf_h = space->varinfo.yres;
 +  pp->img_out_x = 0;
 +  pp->img_out_y = 0;
-+  pp->img_out_w = nufbdevsink->varinfo.xres;
-+  pp->img_out_h = nufbdevsink->varinfo.yres;
++  pp->img_out_w = space->varinfo.xres;
++  pp->img_out_h = space->varinfo.yres;
 +  pp->rotation = PP_ROTATION_NONE;
-+  
-+  if (nufbdevsink->format == GST_VIDEO_FORMAT_ARGB)
++
++  if (space->format == GST_VIDEO_FORMAT_ARGB)
 +    pp->img_out_fmt = V4L2_PIX_FMT_ARGB32;
-+  else if (nufbdevsink->format == GST_VIDEO_FORMAT_RGB16)
++  else if (space->format == GST_VIDEO_FORMAT_RGB16)
 +    pp->img_out_fmt = V4L2_PIX_FMT_RGB565;
 +  else
 +    pp->img_out_fmt = V4L2_PIX_FMT_NV12;
-+  
++
 +  for (i = 0; i < 10; i++) {
 +    sprintf(dev_name, "/dev/video%d", i);
-+    nufbdevsink->fd_vc8k = open(dev_name, O_RDWR);
-+    if (nufbdevsink->fd_vc8k == -1)
++    space->fd_vc8k = open(dev_name, O_RDWR);
++    if (space->fd_vc8k == -1)
 +      continue;
-+    
-+    if (ioctl(nufbdevsink->fd_vc8k, VC8KIOC_PP_SET_CONFIG, nufbdevsink->pp) != 0) {
-+      debug_msg("VC8KIOC_PP_SET_CONFIG failed (%s)", strerror(errno));
++
++    if (ioctl(space->fd_vc8k, VC8KIOC_PP_SET_CONFIG, space->pp) != 0) {
++      printf("VC8KIOC_PP_SET_CONFIG failed (%s)", strerror(errno));
 +      continue;
 +    }
 +    else
 +      break;
 +  }
 +  if (i < 10) {
-+    debug_msg("VC8000 %s opened.\n", dev_name);
++    printf("VC8000 %s opened.\n", dev_name);
 +    return;
 +  }
-+
-+err_out:
-+  close (nufbdevsink->fd);
-+  nufbdevsink->fd = -1;
-+  debug_msg("gst_nufbdevsink_init failed!\n");
++  printf("gst_nufbdevsink_init done\n");
 +}
 +
-+#if 0
-+static void
-+gst_nufbdevsink_get_times (GstBaseSink * basesink, GstBuffer * buffer,
-+    GstClockTime * start, GstClockTime * end)
-+{
-+  GstNUFBDEVSink *nufbdevsink;
-+
-+  nufbdevsink = GST_NUFBDEVSINK (basesink);
-+
-+  if (GST_BUFFER_TIMESTAMP_IS_VALID (buffer)) {
-+    *start = GST_BUFFER_TIMESTAMP (buffer);
-+    if (GST_BUFFER_DURATION_IS_VALID (buffer)) {
-+      *end = *start + GST_BUFFER_DURATION (buffer);
-+    } else {
-+      if (nufbdevsink->fps_n > 0) {
-+        *end = *start +
-+            gst_util_uint64_scale_int (GST_SECOND, nufbdevsink->fps_d,
-+            nufbdevsink->fps_n);
-+      }
-+    }
-+  }
-+}
-+#endif
-+
-+static GstCaps *
-+gst_nufbdevsink_getcaps (GstBaseSink * bsink, GstCaps * filter)
-+{
-+  GstNUFBDEVSink *nufbdevsink;
-+  //GstVideoFormat format;
-+  GstCaps *caps;
-+  //uint32_t rmask;
-+  //uint32_t gmask;
-+  //uint32_t bmask;
-+  //uint32_t tmask;
-+  //int endianness, depth, bpp;
-+
-+  nufbdevsink = GST_NUFBDEVSINK (bsink);
-+
-+  caps = gst_static_pad_template_get_caps (&sink_template);
-+
-+#if 0
-+  /* FIXME: locking */
-+  if (!nufbdevsink->framebuffer)
-+    goto done;
-+
-+  bpp = nufbdevsink->varinfo.bits_per_pixel;
-+
-+  rmask = ((1 << nufbdevsink->varinfo.red.length) - 1)
-+      << nufbdevsink->varinfo.red.offset;
-+  gmask = ((1 << nufbdevsink->varinfo.green.length) - 1)
-+      << nufbdevsink->varinfo.green.offset;
-+  bmask = ((1 << nufbdevsink->varinfo.blue.length) - 1)
-+      << nufbdevsink->varinfo.blue.offset;
-+  tmask = ((1 << nufbdevsink->varinfo.transp.length) - 1)
-+      << nufbdevsink->varinfo.transp.offset;
-+
-+  depth = nufbdevsink->varinfo.red.length + nufbdevsink->varinfo.green.length
-+      + nufbdevsink->varinfo.blue.length;
-+
-+  switch (nufbdevsink->varinfo.bits_per_pixel) {
-+    case 32:
-+      /* swap endianness of masks */
-+      rmask = GUINT32_SWAP_LE_BE (rmask);
-+      gmask = GUINT32_SWAP_LE_BE (gmask);
-+      bmask = GUINT32_SWAP_LE_BE (bmask);
-+      tmask = GUINT32_SWAP_LE_BE (tmask);
-+      depth += nufbdevsink->varinfo.transp.length;
-+      endianness = G_BIG_ENDIAN;
-+      break;
-+    case 24:{
-+      /* swap red and blue masks */
-+      tmask = rmask;
-+      rmask = bmask;
-+      bmask = tmask;
-+      tmask = 0;
-+      endianness = G_BIG_ENDIAN;
-+      break;
-+    }
-+    case 15:
-+    case 16:
-+      tmask = 0;
-+      endianness = G_LITTLE_ENDIAN;
-+      break;
-+    default:
-+      goto unsupported_bpp;
-+  }
-+
-+  format = gst_video_format_from_masks (depth, bpp, endianness, rmask, gmask,
-+      bmask, tmask);
-+
-+  debug_msg("%s, %d, format = %s\n", __func__, __LINE__, gst_video_format_to_string(format));
-+
-+  if (format == GST_VIDEO_FORMAT_UNKNOWN)
-+    goto unknown_format;
-+
-+  caps = gst_caps_make_writable (caps);
-+  gst_caps_set_simple (caps, "format", G_TYPE_STRING,
-+      gst_video_format_to_string (format), NULL);
-+#else
-+  caps = gst_caps_make_writable (caps);
-+#endif
-+
-+  debug_msg("%s, nufbdevsink caps [%s]\n", __func__, gst_caps_to_string(caps));
-+
-+done:
-+
-+  if (filter != NULL) {
-+    GstCaps *icaps;
-+
-+    // debug_msg("%s %d, filter [%s], len = %d\n", __func__, __LINE__, gst_caps_to_string(filter), GST_CAPS_LEN(filter));
-+    // icaps = gst_caps_intersect (caps, filter);
-+    icaps = gst_caps_copy(filter);
-+    
-+    gst_caps_unref (caps);
-+    caps = icaps;
-+  }
-+
-+  if (caps)
-+        debug_msg("%s, return caps name: %s\n", __func__, gst_caps_to_string(caps));
-+  else
-+        debug_msg("%s, return caps is NULL!!\n", __func__);
-+
-+  return caps;
-+
-+#if 0
-+/* ERRORS */
-+unsupported_bpp:
-+  {
-+    GST_WARNING_OBJECT (bsink, "unsupported bit depth: %d", bpp);
-+    return NULL;
-+  }
-+unknown_format:
-+  {
-+    GST_WARNING_OBJECT (bsink, "could not map nufbdev format to GstVideoFormat: "
-+        "depth=%u, bpp=%u, endianness=%u, rmask=0x%08x, gmask=0x%08x, "
-+        "bmask=0x%08x, tmask=0x%08x", depth, bpp, endianness, rmask, gmask,
-+        bmask, tmask);
-+    return NULL;
-+  }
-+#endif  
-+}
-+
-+static gboolean
-+gst_nufbdevsink_setcaps (GstBaseSink * bsink, GstCaps * vscapslist)
-+{
-+#if 0	
-+  GstNUFBDEVSink *nufbdevsink;
-+  GstStructure *structure;
-+  const GValue *fps;
-+
-+  nufbdevsink = GST_NUFBDEVSINK (bsink);
-+
-+  structure = gst_caps_get_structure (vscapslist, 0);
-+
-+  fps = gst_structure_get_value (structure, "framerate");
-+  nufbdevsink->fps_n = gst_value_get_fraction_numerator (fps);
-+  nufbdevsink->fps_d = gst_value_get_fraction_denominator (fps);
-+
-+  gst_structure_get_int (structure, "width", &nufbdevsink->width);
-+  gst_structure_get_int (structure, "height", &nufbdevsink->height);
-+
-+  /* calculate centering and scanlengths for the video */
-+  nufbdevsink->bytespp =
-+      nufbdevsink->fixinfo.line_length / nufbdevsink->varinfo.xres_virtual;
-+
-+  nufbdevsink->cx = ((int) nufbdevsink->varinfo.xres - nufbdevsink->width) / 2;
-+  if (nufbdevsink->cx < 0)
-+    nufbdevsink->cx = 0;
-+
-+  nufbdevsink->cy = ((int) nufbdevsink->varinfo.yres - nufbdevsink->height) / 2;
-+  if (nufbdevsink->cy < 0)
-+    nufbdevsink->cy = 0;
-+
-+  nufbdevsink->linelen = nufbdevsink->width * nufbdevsink->bytespp;
-+  if (nufbdevsink->linelen > nufbdevsink->fixinfo.line_length)
-+    nufbdevsink->linelen = nufbdevsink->fixinfo.line_length;
-+
-+  nufbdevsink->lines = nufbdevsink->height;
-+  if (nufbdevsink->lines > nufbdevsink->varinfo.yres)
-+    nufbdevsink->lines = nufbdevsink->varinfo.yres;
-+#endif
-+  return TRUE;
-+}
-+
-+
-+static GstFlowReturn
-+gst_nufbdevsink_show_frame (GstVideoSink * videosink, GstBuffer * buf)
-+{
-+#if 0
-+  GstNUFBDEVSink *nufbdevsink;
-+  GstMapInfo map;
-+  int i;
-+
-+
-+  nufbdevsink = GST_NUFBDEVSINK (videosink);
-+
-+  /* optimization could remove this memcpy by allocating the buffer
-+     in framebuffer memory, but would only work when xres matches
-+     the video width */
-+  if (!gst_buffer_map (buf, &map, GST_MAP_READ))
-+    return GST_FLOW_ERROR;
-+
-+  for (i = 0; i < nufbdevsink->lines; i++) {
-+    memcpy (nufbdevsink->framebuffer
-+        + (i + nufbdevsink->cy) * nufbdevsink->fixinfo.line_length
-+        + nufbdevsink->cx * nufbdevsink->bytespp,
-+        map.data + i * nufbdevsink->width * nufbdevsink->bytespp,
-+        nufbdevsink->linelen);
-+  }
-+
-+  gst_buffer_unmap (buf, &map);
-+#endif
-+  return GST_FLOW_OK;
-+}
-+
-+static gboolean
-+gst_nufbdevsink_start (GstBaseSink * bsink)
-+{
-+#if 0
-+  GstNUFBDEVSink *nufbdevsink;
-+  struct vc8k_pp_params  *pp;
-+  char  dev_name[32];
-+  int   i;
-+
-+  nufbdevsink = GST_NUFBDEVSINK (bsink);
-+
-+  debug_msg("%s\n", __func__);
-+  if (!nufbdevsink->device) {
-+    nufbdevsink->device = g_strdup ("/dev/fb0");
-+  }
-+
-+  nufbdevsink->fd = open (nufbdevsink->device, O_RDWR);
-+
-+  if (nufbdevsink->fd == -1)
-+    return FALSE;
-+
-+  /* get the fixed screen info */
-+  if (ioctl (nufbdevsink->fd, FBIOGET_FSCREENINFO, &nufbdevsink->fixinfo))
-+    return FALSE;
-+
-+  /* get the variable screen info */
-+  if (ioctl (nufbdevsink->fd, FBIOGET_VSCREENINFO, &nufbdevsink->varinfo))
-+    return FALSE;
-+    
-+  nufbdevsink->format = GST_VIDEO_FORMAT_ARGB;   /* hard fix to ARGB */
-+
-+  /* map the framebuffer */
-+  nufbdevsink->framebuffer = mmap (0, nufbdevsink->fixinfo.smem_len,
-+      PROT_WRITE, MAP_SHARED, nufbdevsink->fd, 0);
-+  if (nufbdevsink->framebuffer == MAP_FAILED)
-+    return FALSE;
-+#endif
-+
-+  return TRUE;
-+}
-+
-+static gboolean
-+gst_nufbdevsink_stop (GstBaseSink * bsink)
-+{
-+#if 0
-+  GstNUFBDEVSink *nufbdevsink;
-+
-+  nufbdevsink = GST_NUFBDEVSINK (bsink);
-+
-+  if (munmap (nufbdevsink->framebuffer, nufbdevsink->fixinfo.smem_len))
-+    return FALSE;
-+
-+  if (close (nufbdevsink->fd))
-+    return FALSE;
-+
-+  nufbdevsink->pp.enable_pp = 0;
-+  ioctl(nufbdevsink->fd_vc8k, VC8KIOC_PP_SET_CONFIG, nufbdevsink->pp);
-+  close(nufbdevsink->fd_vc8k);
-+#endif
-+
-+  return TRUE;
-+}
-+
-+static void
-+gst_nufbdevsink_set_property (GObject * object, guint prop_id,
++void
++gst_nufbdevsink_set_property (GObject * object, guint property_id,
 +    const GValue * value, GParamSpec * pspec)
 +{
-+  GstNUFBDEVSink *nufbdevsink;
++  GstVideoConvert *csp;
++  struct vc8k_pp_params  *pp;
 +
-+  nufbdevsink = GST_NUFBDEVSINK (object);
++  csp = GST_VIDEO_CONVERT (object);
++  pp = &csp->pp;
 +
-+  switch (prop_id) {
-+    case ARG_DEVICE:{
-+      g_free (nufbdevsink->device);
-+      nufbdevsink->device = g_value_dup_string (value);
++  switch (property_id) {
++    case PROP_DITHER:
++      csp->dither = g_value_get_enum (value);
 +      break;
-+    }
++    case PROP_CHROMA_RESAMPLER:
++      csp->chroma_resampler = g_value_get_enum (value);
++      break;
++    case PROP_ALPHA_MODE:
++      csp->alpha_mode = g_value_get_enum (value);
++      break;
++    case PROP_ALPHA_VALUE:
++      csp->alpha_value = g_value_get_double (value);
++      break;
++    case PROP_CHROMA_MODE:
++      csp->chroma_mode = g_value_get_enum (value);
++      break;
++    case PROP_MATRIX_MODE:
++      csp->matrix_mode = g_value_get_enum (value);
++      break;
++    case PROP_GAMMA_MODE:
++      csp->gamma_mode = g_value_get_enum (value);
++      break;
++    case PROP_PRIMARIES_MODE:
++      csp->primaries_mode = g_value_get_enum (value);
++      break;
++    case PROP_DITHER_QUANTIZATION:
++      csp->dither_quantization = g_value_get_uint (value);
++      break;
++    case PROP_N_THREADS:
++      csp->n_threads = g_value_get_uint (value);
++      break;
++    case PROP_X_POS:
++      //printf("%s x-pos = %d\n", __func__, g_value_get_int (value));
++      pp->img_out_x = g_value_get_int (value);
++      break;
++    case PROP_Y_POS:
++      //printf("%s y-pos = %d\n", __func__, g_value_get_int (value));
++      pp->img_out_y = g_value_get_int (value);
++      break;
++    case PROP_WIDTH:
++      //printf("%s width = %d\n", __func__, g_value_get_int (value));
++      pp->img_out_w = g_value_get_int (value);
++      break;
++    case PROP_HEIGHT:
++      //printf("%s height = %d\n", __func__, g_value_get_int (value));
++      pp->img_out_h = g_value_get_int (value);
++      break;
++    case PROP_ROTATE:
++      //printf("%s rotate = %d\n", __func__, g_value_get_int (value));
++      pp->rotation = g_value_get_int (value);
++      break;
 +    default:
-+      G_OBJECT_WARN_INVALID_PROPERTY_ID (object, prop_id, pspec);
++      G_OBJECT_WARN_INVALID_PROPERTY_ID (object, property_id, pspec);
++      break;
++  }
++  ioctl(csp->fd_vc8k, VC8KIOC_PP_SET_CONFIG, csp->pp);
++}
++
++void
++gst_nufbdevsink_get_property (GObject * object, guint property_id,
++    GValue * value, GParamSpec * pspec)
++{
++  GstVideoConvert *csp;
++
++  csp = GST_VIDEO_CONVERT (object);
++
++  switch (property_id) {
++    case PROP_DITHER:
++      g_value_set_enum (value, csp->dither);
++      break;
++    case PROP_CHROMA_RESAMPLER:
++      g_value_set_enum (value, csp->chroma_resampler);
++      break;
++    case PROP_ALPHA_MODE:
++      g_value_set_enum (value, csp->alpha_mode);
++      break;
++    case PROP_ALPHA_VALUE:
++      g_value_set_double (value, csp->alpha_value);
++      break;
++    case PROP_CHROMA_MODE:
++      g_value_set_enum (value, csp->chroma_mode);
++      break;
++    case PROP_MATRIX_MODE:
++      g_value_set_enum (value, csp->matrix_mode);
++      break;
++    case PROP_GAMMA_MODE:
++      g_value_set_enum (value, csp->gamma_mode);
++      break;
++    case PROP_PRIMARIES_MODE:
++      g_value_set_enum (value, csp->primaries_mode);
++      break;
++    case PROP_DITHER_QUANTIZATION:
++      g_value_set_uint (value, csp->dither_quantization);
++      break;
++    case PROP_N_THREADS:
++      g_value_set_uint (value, csp->n_threads);
++      break;
++    default:
++      G_OBJECT_WARN_INVALID_PROPERTY_ID (object, property_id, pspec);
 +      break;
 +  }
 +}
 +
-+
-+static void
-+gst_nufbdevsink_get_property (GObject * object, guint prop_id, GValue * value,
-+    GParamSpec * pspec)
++static GstFlowReturn
++gst_nufbdevsink_transform_frame (GstVideoFilter * filter,
++    GstVideoFrame * in_frame, GstVideoFrame * out_frame)
 +{
-+  GstNUFBDEVSink *nufbdevsink;
++  GstVideoConvert *space;
 +
-+  nufbdevsink = GST_NUFBDEVSINK (object);
++  space = GST_VIDEO_CONVERT_CAST (filter);
 +
-+  switch (prop_id) {
-+    case ARG_DEVICE:{
-+      g_value_set_string (value, nufbdevsink->device);
-+      break;
-+    }
-+    default:
-+      G_OBJECT_WARN_INVALID_PROPERTY_ID (object, prop_id, pspec);
-+      break;
-+  }
-+}
++  GST_CAT_DEBUG_OBJECT (CAT_PERFORMANCE, filter,
++      "doing colorspace conversion from %s -> to %s",
++      GST_VIDEO_INFO_NAME (&filter->in_info),
++      GST_VIDEO_INFO_NAME (&filter->out_info));
 +
-+static GstStateChangeReturn
-+gst_nufbdevsink_change_state (GstElement * element, GstStateChange transition)
-+{
-+  GstStateChangeReturn ret = GST_STATE_CHANGE_SUCCESS;
++//  gst_video_converter_frame (space->convert, in_frame, out_frame);
 +
-+  g_return_val_if_fail (GST_IS_NUFBDEVSINK (element), GST_STATE_CHANGE_FAILURE);
-+
-+  ret = GST_ELEMENT_CLASS (parent_class)->change_state (element, transition);
-+
-+  switch (transition) {
-+    default:
-+      break;
-+  }
-+  return ret;
++  return GST_FLOW_OK;
 +}
 +
 +static gboolean
 +plugin_init (GstPlugin * plugin)
 +{
-+  if (!gst_element_register (plugin, "nufbdevsink", GST_RANK_NONE,
-+          GST_TYPE_NUFBDEVSINK))
-+    return FALSE;
++  GST_DEBUG_CATEGORY_INIT (nufbdevsink_debug, "nufbdevsink", 0,
++      "Colorspace Converter");
 +
-+  return TRUE;
-+}
++  GST_DEBUG_CATEGORY_GET (CAT_PERFORMANCE, "GST_PERFORMANCE");
 +
-+static void
-+gst_nufbdevsink_class_init (GstNUFBDEVSinkClass * klass)
-+{
-+  GObjectClass *gobject_class;
-+  GstElementClass *gstelement_class;
-+  GstBaseSinkClass *basesink_class;
-+  GstVideoSinkClass *videosink_class;
++  _colorspace_quark = g_quark_from_static_string ("colorspace");
 +
-+  gobject_class = (GObjectClass *) klass;
-+  gstelement_class = (GstElementClass *) klass;
-+  basesink_class = (GstBaseSinkClass *) klass;
-+  videosink_class = (GstVideoSinkClass *) klass;
-+
-+  gobject_class->set_property = gst_nufbdevsink_set_property;
-+  gobject_class->get_property = gst_nufbdevsink_get_property;
-+  gobject_class->finalize = gst_nufbdevsink_finalize;
-+
-+  gstelement_class->change_state =
-+      GST_DEBUG_FUNCPTR (gst_nufbdevsink_change_state);
-+
-+  g_object_class_install_property (G_OBJECT_CLASS (klass), ARG_DEVICE,
-+      g_param_spec_string ("device", "device",
-+          "The framebuffer device eg: /dev/fb0", NULL, G_PARAM_READWRITE));
-+
-+  basesink_class->set_caps = GST_DEBUG_FUNCPTR (gst_nufbdevsink_setcaps);
-+  basesink_class->get_caps = GST_DEBUG_FUNCPTR (gst_nufbdevsink_getcaps);
-+#if 0
-+  basesink_class->get_times = GST_DEBUG_FUNCPTR (gst_nufbdevsink_get_times);
-+#endif
-+  basesink_class->start = GST_DEBUG_FUNCPTR (gst_nufbdevsink_start);
-+  basesink_class->stop = GST_DEBUG_FUNCPTR (gst_nufbdevsink_stop);
-+
-+  videosink_class->show_frame = GST_DEBUG_FUNCPTR (gst_nufbdevsink_show_frame);
-+
-+  gst_element_class_set_static_metadata (gstelement_class, "nufbdev video sink",
-+      "Sink/Video", "Linux framebuffer videosink",
-+      "Sean D'Epagnier <sean@depagnier.com>");
-+
-+  gst_element_class_add_static_pad_template (gstelement_class, &sink_template);
-+}
-+
-+static void
-+gst_nufbdevsink_finalize (GObject * object)
-+{
-+  GstNUFBDEVSink *nufbdevsink = GST_NUFBDEVSINK (object);
-+
-+#if 1
-+  munmap (nufbdevsink->framebuffer, nufbdevsink->fixinfo.smem_len);
-+  close (nufbdevsink->fd);
-+  nufbdevsink->pp.enable_pp = 0;
-+  ioctl(nufbdevsink->fd_vc8k, VC8KIOC_PP_SET_CONFIG, nufbdevsink->pp);
-+  close(nufbdevsink->fd_vc8k);
-+#endif
-+
-+  g_free (nufbdevsink->device);
-+
-+  G_OBJECT_CLASS (parent_class)->finalize (object);
++  return gst_element_register (plugin, "nufbdevsink",
++      GST_RANK_NONE, GST_TYPE_VIDEO_CONVERT);
 +}
 +
 +GST_PLUGIN_DEFINE (GST_VERSION_MAJOR,
 +    GST_VERSION_MINOR,
-+    nufbdevsink,
-+    "Linux framebuffer video sink",
-+    plugin_init, VERSION, GST_LICENSE, GST_PACKAGE_NAME, GST_PACKAGE_ORIGIN)
++    nufbdevsink, "MA35D1 VC8000 PP", plugin_init, VERSION, GST_LICENSE,
++    GST_PACKAGE_NAME, GST_PACKAGE_ORIGIN)
 diff --git a/sys/nufbdev/gstnufbdevsink.h b/sys/nufbdev/gstnufbdevsink.h
 new file mode 100644
-index 0000000..3c487d2
+index 0000000..3f03c38
 --- /dev/null
 +++ b/sys/nufbdev/gstnufbdevsink.h
-@@ -0,0 +1,106 @@
+@@ -0,0 +1,109 @@
 +/* GStreamer
-+ * Copyright (C) 2007 Sean D'Epagnier sean@depagnier.com
++ * Copyright (C) <1999> Erik Walthinsen <omega@cse.ogi.edu>
++ * This file:
++ * Copyright (C) 2003 Ronald Bultje <rbultje@ronald.bitfreak.net>
 + *
 + * This library is free software; you can redistribute it and/or
 + * modify it under the terms of the GNU Library General Public
@@ -2076,13 +1970,13 @@ index 0000000..3c487d2
 + * Boston, MA 02110-1301, USA.
 + */
 +
-+
-+#ifndef __GST_NUFBDEVSINK_H__
-+#define __GST_NUFBDEVSINK_H__
++#ifndef __GST_VIDEOCONVERT_H__
++#define __GST_VIDEOCONVERT_H__
 +
 +#include <gst/gst.h>
-+#include <gst/video/gstvideosink.h>
 +#include <gst/video/video.h>
++#include <gst/video/gstvideofilter.h>
++#include <gst/video/gstvideosink.h>
 +
 +#include <linux/fb.h>
 +
@@ -2113,56 +2007,57 @@ index 0000000..3c487d2
 +#define PP_ROTATION_VER_FLIP                            4U
 +#define PP_ROTATION_180                                 5U
 +
-+
 +G_BEGIN_DECLS
 +
-+#define GST_TYPE_NUFBDEVSINK \
-+  (gst_nufbdevsink_get_type())
-+#define GST_NUFBDEVSINK(obj) \
-+  (G_TYPE_CHECK_INSTANCE_CAST((obj),GST_TYPE_NUFBDEVSINK,GstNUFBDEVSink))
-+#define GST_NUFBDEVSINK_CLASS(klass) \
-+  (G_TYPE_CHECK_CLASS_CAST((klass),GST_TYPE_NUFBDEVSINK,GstNUFBDEVSinkClass))
-+#define GST_IS_NUFBDEVSINK(obj) \
-+  (G_TYPE_CHECK_INSTANCE_TYPE((obj),GST_TYPE_NUFBDEVSINK))
-+#define GST_IS_NUFBDEVSINK_CLASS(klass) \
-+  (G_TYPE_CHECK_CLASS_TYPE((klass),GST_TYPE_NUFBDEVSINK))
++#define GST_TYPE_VIDEO_CONVERT	          (gst_nufbdevsink_get_type())
++#define GST_VIDEO_CONVERT(obj)            (G_TYPE_CHECK_INSTANCE_CAST((obj),GST_TYPE_VIDEO_CONVERT,GstVideoConvert))
++#define GST_VIDEO_CONVERT_CLASS(klass)    (G_TYPE_CHECK_CLASS_CAST((klass),GST_TYPE_VIDEO_CONVERT,GstVideoConvertClass))
++#define GST_IS_VIDEO_CONVERT(obj)         (G_TYPE_CHECK_INSTANCE_TYPE((obj),GST_TYPE_VIDEO_CONVERT))
++#define GST_IS_VIDEO_CONVERT_CLASS(klass) (G_TYPE_CHECK_CLASS_TYPE((klass),GST_TYPE_VIDEO_CONVERT))
++#define GST_VIDEO_CONVERT_CAST(obj)       ((GstVideoConvert *)(obj))
 +
-+typedef struct _GstNUFBDEVSink GstNUFBDEVSink;
-+typedef struct _GstNUFBDEVSinkClass GstNUFBDEVSinkClass;
++typedef struct _GstVideoConvert GstVideoConvert;
++typedef struct _GstVideoConvertClass GstVideoConvertClass;
 +
-+struct _GstNUFBDEVSink {
-+  GstVideoSink videosink;
++/**
++ * GstVideoConvert:
++ *
++ * Opaque object data structure.
++ */
++struct _GstVideoConvert {
++  GstVideoFilter element;
++
++  GstVideoConverter *convert;
++  GstVideoDitherMethod dither;
++  guint dither_quantization;
++  GstVideoResamplerMethod chroma_resampler;
++  GstVideoAlphaMode alpha_mode;
++  GstVideoChromaMode chroma_mode;
++  GstVideoMatrixMode matrix_mode;
++  GstVideoGammaMode gamma_mode;
++  GstVideoPrimariesMode primaries_mode;
++  gdouble alpha_value;
++  gint n_threads;
 +
 +  /*< private >*/
++  GstVideoFormat  format;
 +  struct fb_fix_screeninfo fixinfo;
 +  struct fb_var_screeninfo varinfo;
-+
-+  int fd;
++  char  *device;
 +  unsigned char *framebuffer;
-+
-+  char *device;
-+
-+  GstVideoFormat  format;
-+  int width, height;
-+  int cx, cy, linelen, lines, bytespp;
-+
-+  int fps_n, fps_d;
-+  
++  int   fd;
 +  int   fd_vc8k;
 +  struct vc8k_pp_params  pp;
 +};
 +
-+struct _GstNUFBDEVSinkClass {
-+  GstVideoSinkClass videosink_class;
-+
++struct _GstVideoConvertClass
++{
++  GstVideoFilterClass parent_class;
 +};
-+
-+GType gst_nufbdevsink_get_type(void);
 +
 +G_END_DECLS
 +
-+
-+#endif /* __GST_NUFBDEVSINK_H__ */
++#endif /* __GST_VIDEOCONVERT_H__ */
 diff --git a/sys/nufbdev/meson.build b/sys/nufbdev/meson.build
 new file mode 100644
 index 0000000..20ca11f
@@ -2194,5 +2089,5 @@ index 0000000..20ca11f
 +  pkgconfig.generate(gstnufbdevsink, install_dir : plugins_pkgconfig_install_dir)
 +endif
 -- 
-2.25.1
+2.17.1
 
