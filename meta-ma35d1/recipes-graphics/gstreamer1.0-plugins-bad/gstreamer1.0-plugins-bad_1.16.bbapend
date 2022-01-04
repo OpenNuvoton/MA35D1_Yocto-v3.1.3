@@ -1,3 +1,0 @@
-FILESEXTRAPATHS_prepend := "$THISDIR"
-SRC_URI += " 0001-Add-nufbdevsink-plugin-for-MA35D1-VC8000.patch"
-
