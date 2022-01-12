@@ -1,10 +1,10 @@
 # The following boards were test in this release
-
+```
 ma35d1-evb
 ma35d1-iot
 ma35d1-som
 ma35d1-som-1gb
-
+```
 # Using repo to download source
 ```
 $ repo init -u https://github.com/OpenNuvoton/MA35D1_Yocto-v3.1.3.git -m meta-ma35d1/base/ma35d1.xml
@@ -13,7 +13,7 @@ $ repo sync
 ###### NOTE: 
 ```
 1.Probably you will get server certificate verification failed
-solution: 
+Solve it in the following way: 
 	export GIT_SSL_NO_NOTIFY=1
 	or
 	git config --global http.sslverify false
