@@ -21,6 +21,7 @@ IMAGE_INSTALL_append = "\
     ttf-dejavu-serif-condensed \
     ttf-dejavu-common \
     qt5-env \
+    directfb-env \
     v4l-utils \
     gstreamer1.0-plugins-base \
     gstreamer1.0-plugins-good \
