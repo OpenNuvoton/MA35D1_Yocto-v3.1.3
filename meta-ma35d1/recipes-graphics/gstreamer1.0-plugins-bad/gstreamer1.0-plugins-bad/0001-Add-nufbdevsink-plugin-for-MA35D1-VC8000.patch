@@ -1,6 +1,6 @@
-From 3e8c85b05457d594621b662e86f1a9db1659a1e8 Mon Sep 17 00:00:00 2001
+From 821ceaebf167bed276b81d05e581ffedd429fd1d Mon Sep 17 00:00:00 2001
 From: "Y.C. Huang" <ychuang3@nuvoton.com>
-Date: Tue, 28 Dec 2021 15:59:58 +0800
+Date: Thu, 17 Feb 2022 12:51:10 +0800
 Subject: [PATCH] Add nufbdevsink plugin for MA35D1 VC8000.
 
 ---
@@ -1294,7 +1294,7 @@ index 0000000..0da09c5
 +.NOEXPORT:
 diff --git a/sys/nufbdev/gstnufbdevsink.c b/sys/nufbdev/gstnufbdevsink.c
 new file mode 100644
-index 0000000..47d1ff9
+index 0000000..217d9a0
 --- /dev/null
 +++ b/sys/nufbdev/gstnufbdevsink.c
 @@ -0,0 +1,645 @@
@@ -1376,7 +1376,7 @@ index 0000000..47d1ff9
 +static GQuark _colorspace_quark;
 +
 +#define gst_nufbdevsink_parent_class parent_class
-+G_DEFINE_TYPE (GstVideoConvert, gst_nufbdevsink, GST_TYPE_VIDEO_FILTER);
++G_DEFINE_TYPE (nuGstVideoConvert, gst_nufbdevsink, GST_TYPE_VIDEO_FILTER);
 +
 +#define DEFAULT_PROP_DITHER      GST_VIDEO_DITHER_BAYER
 +#define DEFAULT_PROP_DITHER_QUANTIZATION 1
@@ -1563,7 +1563,7 @@ index 0000000..47d1ff9
 +    GstCaps * incaps, GstVideoInfo * in_info, GstCaps * outcaps,
 +    GstVideoInfo * out_info)
 +{
-+  GstVideoConvert *space;
++  nuGstVideoConvert *space;
 +
 +  space = GST_VIDEO_CONVERT_CAST (filter);
 +
@@ -1574,7 +1574,7 @@ index 0000000..47d1ff9
 +
 +#if 0
 +  space->convert = gst_video_converter_new (in_info, out_info,
-+      gst_structure_new ("GstVideoConvertConfig",
++      gst_structure_new ("nuGstVideoConvertConfig",
 +          GST_VIDEO_CONVERTER_OPT_DITHER_METHOD, GST_TYPE_VIDEO_DITHER_METHOD,
 +          space->dither,
 +          GST_VIDEO_CONVERTER_OPT_DITHER_QUANTIZATION, G_TYPE_UINT,
@@ -1620,7 +1620,7 @@ index 0000000..47d1ff9
 +static void
 +gst_nufbdevsink_finalize (GObject * obj)
 +{
-+  GstVideoConvert *space = GST_VIDEO_CONVERT (obj);
++  nuGstVideoConvert *space = GST_VIDEO_CONVERT (obj);
 +
 +  if (space->framebuffer != NULL)
 +    munmap (space->framebuffer, space->fixinfo.smem_len);
@@ -1635,7 +1635,7 @@ index 0000000..47d1ff9
 +}
 +
 +static void
-+gst_nufbdevsink_class_init (GstVideoConvertClass * klass)
++gst_nufbdevsink_class_init (nuGstVideoConvertClass * klass)
 +{
 +  GObjectClass *gobject_class = (GObjectClass *) klass;
 +  GstElementClass *gstelement_class = (GstElementClass *) klass;
@@ -1706,7 +1706,7 @@ index 0000000..47d1ff9
 +}
 +
 +static void
-+gst_nufbdevsink_init (GstVideoConvert * space)
++gst_nufbdevsink_init (nuGstVideoConvert * space)
 +{
 +  struct vc8k_pp_params  *pp;
 +  char  dev_name[32];
@@ -1791,14 +1791,14 @@ index 0000000..47d1ff9
 +    printf("VC8000 %s opened.\n", dev_name);
 +    return;
 +  }
-+  printf("gst_nufbdevsink_init done\n");
++  printf("%s %s - nufbdevsink\n", __DATE__, __TIME__);
 +}
 +
 +void
 +gst_nufbdevsink_set_property (GObject * object, guint property_id,
 +    const GValue * value, GParamSpec * pspec)
 +{
-+  GstVideoConvert *csp;
++  nuGstVideoConvert *csp;
 +  struct vc8k_pp_params  *pp;
 +
 +  csp = GST_VIDEO_CONVERT (object);
@@ -1866,7 +1866,7 @@ index 0000000..47d1ff9
 +gst_nufbdevsink_get_property (GObject * object, guint property_id,
 +    GValue * value, GParamSpec * pspec)
 +{
-+  GstVideoConvert *csp;
++  nuGstVideoConvert *csp;
 +
 +  csp = GST_VIDEO_CONVERT (object);
 +
@@ -1911,7 +1911,7 @@ index 0000000..47d1ff9
 +gst_nufbdevsink_transform_frame (GstVideoFilter * filter,
 +    GstVideoFrame * in_frame, GstVideoFrame * out_frame)
 +{
-+  GstVideoConvert *space;
++  nuGstVideoConvert *space;
 +
 +  space = GST_VIDEO_CONVERT_CAST (filter);
 +
@@ -1945,7 +1945,7 @@ index 0000000..47d1ff9
 +    GST_PACKAGE_NAME, GST_PACKAGE_ORIGIN)
 diff --git a/sys/nufbdev/gstnufbdevsink.h b/sys/nufbdev/gstnufbdevsink.h
 new file mode 100644
-index 0000000..3f03c38
+index 0000000..0238783
 --- /dev/null
 +++ b/sys/nufbdev/gstnufbdevsink.h
 @@ -0,0 +1,109 @@
@@ -1970,8 +1970,8 @@ index 0000000..3f03c38
 + * Boston, MA 02110-1301, USA.
 + */
 +
-+#ifndef __GST_VIDEOCONVERT_H__
-+#define __GST_VIDEOCONVERT_H__
++#ifndef __GST_NUFBDEVSINK_H__
++#define __GST_NUFBDEVSINK_H__
 +
 +#include <gst/gst.h>
 +#include <gst/video/video.h>
@@ -2010,21 +2010,21 @@ index 0000000..3f03c38
 +G_BEGIN_DECLS
 +
 +#define GST_TYPE_VIDEO_CONVERT	          (gst_nufbdevsink_get_type())
-+#define GST_VIDEO_CONVERT(obj)            (G_TYPE_CHECK_INSTANCE_CAST((obj),GST_TYPE_VIDEO_CONVERT,GstVideoConvert))
-+#define GST_VIDEO_CONVERT_CLASS(klass)    (G_TYPE_CHECK_CLASS_CAST((klass),GST_TYPE_VIDEO_CONVERT,GstVideoConvertClass))
++#define GST_VIDEO_CONVERT(obj)            (G_TYPE_CHECK_INSTANCE_CAST((obj),GST_TYPE_VIDEO_CONVERT,nuGstVideoConvert))
++#define GST_VIDEO_CONVERT_CLASS(klass)    (G_TYPE_CHECK_CLASS_CAST((klass),GST_TYPE_VIDEO_CONVERT,nuGstVideoConvertClass))
 +#define GST_IS_VIDEO_CONVERT(obj)         (G_TYPE_CHECK_INSTANCE_TYPE((obj),GST_TYPE_VIDEO_CONVERT))
 +#define GST_IS_VIDEO_CONVERT_CLASS(klass) (G_TYPE_CHECK_CLASS_TYPE((klass),GST_TYPE_VIDEO_CONVERT))
-+#define GST_VIDEO_CONVERT_CAST(obj)       ((GstVideoConvert *)(obj))
++#define GST_VIDEO_CONVERT_CAST(obj)       ((nuGstVideoConvert *)(obj))
 +
-+typedef struct _GstVideoConvert GstVideoConvert;
-+typedef struct _GstVideoConvertClass GstVideoConvertClass;
++typedef struct _nuGstVideoConvert nuGstVideoConvert;
++typedef struct _nuGstVideoConvertClass nuGstVideoConvertClass;
 +
 +/**
-+ * GstVideoConvert:
++ * nuGstVideoConvert:
 + *
 + * Opaque object data structure.
 + */
-+struct _GstVideoConvert {
++struct _nuGstVideoConvert {
 +  GstVideoFilter element;
 +
 +  GstVideoConverter *convert;
@@ -2050,14 +2050,14 @@ index 0000000..3f03c38
 +  struct vc8k_pp_params  pp;
 +};
 +
-+struct _GstVideoConvertClass
++struct _nuGstVideoConvertClass
 +{
 +  GstVideoFilterClass parent_class;
 +};
 +
 +G_END_DECLS
 +
-+#endif /* __GST_VIDEOCONVERT_H__ */
++#endif /* __GST_NUFBDEVSINK_H__ */
 diff --git a/sys/nufbdev/meson.build b/sys/nufbdev/meson.build
 new file mode 100644
 index 0000000..20ca11f
