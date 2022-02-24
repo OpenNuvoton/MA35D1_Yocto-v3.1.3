@@ -6,7 +6,9 @@ LICENSE = "BSD-3-Clause"
 LIC_FILES_CHKSUM = "file://license.rst;md5=1dd070c98a281d18d9eefd938729b031"
 
 SRC_URI = "git://github.com/OpenNuvoton/MA35D1_arm-trusted-firmware-v2.3.git;protocol=https;nobranch=1"
-SRCREV = "master"
+SRCREV = "${TFA_SRCREV}"
+
+SRC_URI += "file://modify.patch"
 
 TF_VERSION = "2.3"
 PV = "${TF_VERSION}.r1"
@@ -78,7 +80,7 @@ do_compile() {
                 MA35D1_DDR_MAX_SIZE=0x20000000 \
                 MA35D1_DRAM_S_BASE=0x9F800000 \
                 MA35D1_BL32_BASE=0x9F800000-C ${S} fiptool
-        elif [ "${TFA_DTB}" = "ma35d1xx0-som-1gb" ]; then
+        elif [ "${TFA_DTB}" = "ma35d1xx0-mt-1gb" ]||[ "${TFA_DTB}" = "ma35d1xx0-issi-1gb" ]||[ "${TFA_DTB}" = "ma35d1xx0-zentel-1gb" ]; then
             oe_runmake PLAT=${PLATFORM} NEED_BL31=yes NEED_BL32=yes NEED_BL33=yes \
                 MA35D1_DRAM_SIZE=0x3F800000 \
                 MA35D1_DDR_MAX_SIZE=0x40000000 \

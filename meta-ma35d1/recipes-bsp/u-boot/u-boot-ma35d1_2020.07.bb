@@ -15,7 +15,7 @@ UBOOT_SRC ?= "git://github.com/OpenNuvoton/MA35D1_u-boot-v2020.07.git;protocol=h
 
 SRCBRANCH = "2020.07"
 SRC_URI = "${UBOOT_SRC}"
-SRCREV = "master"
+SRCREV = "${UBOOT_SRCREV}"
 
 SRC_URI += " file://uEnv-spinand-ubi.cfg \
              file://uEnv-nand-ubi.cfg \
