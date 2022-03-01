@@ -8,8 +8,6 @@ LIC_FILES_CHKSUM = "file://license.rst;md5=1dd070c98a281d18d9eefd938729b031"
 SRC_URI = "git://github.com/OpenNuvoton/MA35D1_arm-trusted-firmware-v2.3.git;protocol=https;nobranch=1"
 SRCREV = "${TFA_SRCREV}"
 
-SRC_URI += "file://modify.patch"
-
 TF_VERSION = "2.3"
 PV = "${TF_VERSION}.r1"
 
