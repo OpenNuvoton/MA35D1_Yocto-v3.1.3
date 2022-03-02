@@ -14,7 +14,7 @@ include conf/machine/include/tune-cortexa35.inc
 # =========================================================================
 # Kernel
 # =========================================================================
-KV = "5.4.110"
+KV = "5.4.181"
 PREFERRED_PROVIDER_kernel = "linux-ma35d1"
 PREFERRED_PROVIDER_virtual/kernel = "linux-ma35d1"
 
