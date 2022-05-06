@@ -19,7 +19,6 @@ SRC_URI += " file://header-nand.json \
              file://pack-nand.json \
              file://pack-sdcard.json \
              file://pack-spinand.json \
-             file://ddrimg_tfa.bin \
            "
 
 DEPENDS += " \
@@ -56,16 +55,13 @@ do_install(){
     cp ${WORKDIR}/pack-sdcard.json  ${D}${datadir}/nuwriter/
    
     cp ${S}/ddrimg/* ${D}${datadir}/nuwriter/ddrimg/ 
-    cp ${S}/xusb.bin  ${D}${datadir}/nuwriter/
-    cp ${WORKDIR}/ddrimg_tfa.bin  ${D}${datadir}/nuwriter/
-    cp ${S}/xusb.bin  ${DEPLOYDIR}/${BOOT_TOOLS}/
-    cp ${WORKDIR}/ddrimg_tfa.bin  ${DEPLOYDIR}/${BOOT_TOOLS}
+    cp ${S}/xusb.bin ${D}${datadir}/nuwriter/
 }
 
 do_deploy() {
     install -d ${DEPLOYDIR}/${BOOT_TOOLS}/nuwriter
     install -d ${DEPLOYDIR}/${BOOT_TOOLS}/nuwriter/ddrimg
-    cp -rf ${B}/nuwriter/* ${DEPLOYDIR}/${BOOT_TOOLS}/nuwriter/
+    cp -rf ${B}/nuwriter/* ${DEPLOYDIR}/${BOOT_TOOLS}/nuwriter
     cp ${WORKDIR}/header-nand.json  ${DEPLOYDIR}/${BOOT_TOOLS}/nuwriter/
     cp ${WORKDIR}/header-spinand.json  ${DEPLOYDIR}/${BOOT_TOOLS}/nuwriter/
     cp ${WORKDIR}/header-sdcard.json  ${DEPLOYDIR}/${BOOT_TOOLS}/nuwriter/
@@ -75,9 +71,7 @@ do_deploy() {
     
     cp ${S}/ddrimg/* ${DEPLOYDIR}/${BOOT_TOOLS}/nuwriter/ddrimg/
     cp ${S}/xusb.bin  ${DEPLOYDIR}/${BOOT_TOOLS}/nuwriter/
-    cp ${WORKDIR}/ddrimg_tfa.bin  ${DEPLOYDIR}/${BOOT_TOOLS}/nuwriter/
     cp ${S}/xusb.bin  ${DEPLOYDIR}/${BOOT_TOOLS}/
-    cp ${WORKDIR}/ddrimg_tfa.bin  ${DEPLOYDIR}/${BOOT_TOOLS}/
 
 }
 

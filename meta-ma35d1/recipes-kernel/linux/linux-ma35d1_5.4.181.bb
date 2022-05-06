@@ -24,13 +24,10 @@ SRC_URI = "${KERNEL_SRC}"
 SRC_URI += " \
     file://optee.config \
     file://cfg80211.config \
-    file://8189es.ko \
-    file://8192es.ko \
     "
 
 
-SRC_URI += "${@bb.utils.contains('DISTRO_FEATURES', '8189es', ' file://8189es.ko', '', d)}"
-SRC_URI += "${@bb.utils.contains('DISTRO_FEATURES', '8192es', ' file://8192es.ko', '', d)}"
+SRC_URI += "${@bb.utils.contains('DISTRO_FEATURES', '88x2bu', ' file://88x2bu.ko', '', d)}"
 
 SRCREV="${KERNEL_SRCREV}"
 S = "${WORKDIR}/git"
@@ -64,17 +61,12 @@ do_deploy_append() {
 }
 
 do_install_append() {
-    if [ -e ${WORKDIR}/8189es.ko ]; then
+    if [ -e ${WORKDIR}/88x2bu.ko ]; then
         install -d ${D}/${base_libdir}/modules/${KV}
-        install -m 0644 ${WORKDIR}/8189es.ko ${D}/${base_libdir}/modules/${PV}/8189es.ko
-    elif [ -e ${WORKDIR}/8192es.ko ]; then
-        install -d ${D}/${base_libdir}/modules/${KV}
-        install -m 0644 ${WORKDIR}/8192es.ko ${D}/${base_libdir}/modules/${PV}/8192es.ko
+        install -m 0644 ${WORKDIR}/88x2bu.ko ${D}/${base_libdir}/modules/${PV}/88x2bu.ko
     fi
 }
 
-
-FILES_${PN} += "${base_libdir}/modules/${PV}/${@bb.utils.contains('DISTRO_FEATURES', '8189es', '8189es.ko', '', d)}"
-FILES_${PN} += "${base_libdir}/modules/${PV}/${@bb.utils.contains('DISTRO_FEATURES', '8192es', '8192es.ko', '', d)}"
+FILES_${PN} += "${base_libdir}/modules/${PV}/${@bb.utils.contains('DISTRO_FEATURES', '88x2bu', '88x2bu.ko', '', d)}"
 COMPATIBLE_MACHINE = "(ma35d1)"
 

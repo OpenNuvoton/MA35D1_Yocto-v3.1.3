@@ -26,6 +26,8 @@ IMAGE_INSTALL_append = "\
     gstreamer1.0-plugins-base \
     gstreamer1.0-plugins-good \
     gstreamer1.0-plugins-bad \
+    tslib-tests \
+    tslib-calibrate \
     "
 
 # Define to null ROOTFS_MAXSIZE to avoid partition size restriction

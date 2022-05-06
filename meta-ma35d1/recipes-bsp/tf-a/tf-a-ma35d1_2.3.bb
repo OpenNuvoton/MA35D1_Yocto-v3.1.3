@@ -5,7 +5,7 @@ SECTION = "bootloaders"
 LICENSE = "BSD-3-Clause"
 LIC_FILES_CHKSUM = "file://license.rst;md5=1dd070c98a281d18d9eefd938729b031"
 
-SRC_URI = "git://github.com/OpenNuvoton/MA35D1_arm-trusted-firmware-v2.3.git;protocol=https;nobranch=1"
+SRC_URI = "git://github.com/MA35D1/arm-trusted-firmware-v2.3.git;branch=master;protocol=https"
 SRCREV = "${TFA_SRCREV}"
 
 TF_VERSION = "2.3"
@@ -42,11 +42,11 @@ export CROSS_COMPILE="${TARGET_PREFIX}"
 export ARCH="arm64"
 do_compile() {
     if ${@bb.utils.contains('MACHINE_FEATURES', 'optee', 'true', 'false', d)}; then
-        if [ "${TFA_DTB}" = "ma35d1xx8" ]; then
+	if echo ${TFA_DTB} | grep -q "256"; then
             oe_runmake PLAT=${PLATFORM} NEED_BL31=yes NEED_BL32=yes NEED_BL33=yes -C ${S} realclean
             oe_runmake PLAT=${PLATFORM} NEED_BL31=yes NEED_BL32=yes NEED_BL33=yes -C ${S} all
             oe_runmake PLAT=${PLATFORM} NEED_BL31=yes NEED_BL32=yes NEED_BL33=yes -C ${S} fiptool
-        elif [ "${TFA_DTB}" = "ma35d1xx7" ]; then
+	elif echo ${TFA_DTB} | grep -q "128"; then
             oe_runmake PLAT=${PLATFORM} NEED_BL31=yes NEED_BL32=yes NEED_BL33=yes \
                 MA35D1_DRAM_SIZE=0x07800000 \
                 MA35D1_DDR_MAX_SIZE=0x8000000 \
@@ -62,7 +62,7 @@ do_compile() {
                 MA35D1_DDR_MAX_SIZE=0x8000000 \
                 MA35D1_DRAM_S_BASE=0x87800000 \
                 MA35D1_BL32_BASE=0x87800000-C ${S} fiptool
-        elif [ "${TFA_DTB}" = "ma35d1xx0" ]; then
+	elif echo ${TFA_DTB} | grep -q "512"; then
             oe_runmake PLAT=${PLATFORM} NEED_BL31=yes NEED_BL32=yes NEED_BL33=yes \
                 MA35D1_DRAM_SIZE=0x1F800000 \
                 MA35D1_DDR_MAX_SIZE=0x20000000 \
@@ -78,7 +78,7 @@ do_compile() {
                 MA35D1_DDR_MAX_SIZE=0x20000000 \
                 MA35D1_DRAM_S_BASE=0x9F800000 \
                 MA35D1_BL32_BASE=0x9F800000-C ${S} fiptool
-        elif [ "${TFA_DTB}" = "ma35d1xx0-mt-1gb" ]||[ "${TFA_DTB}" = "ma35d1xx0-issi-1gb" ]||[ "${TFA_DTB}" = "ma35d1xx0-zentel-1gb" ]; then
+	elif echo ${TFA_DTB} | grep -q "1g"; then
             oe_runmake PLAT=${PLATFORM} NEED_BL31=yes NEED_BL32=yes NEED_BL33=yes \
                 MA35D1_DRAM_SIZE=0x3F800000 \
                 MA35D1_DDR_MAX_SIZE=0x40000000 \

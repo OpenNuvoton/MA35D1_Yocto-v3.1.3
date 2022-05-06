@@ -11,7 +11,7 @@ unset _PYTHON_SYSCONFIGDATA_NAME
 LICENSE = "GPLv2+"
 LIC_FILES_CHKSUM = "file://Licenses/gpl-2.0.txt;md5=b234ee4d69f5fce4486a80fdaf4a4263"
 
-UBOOT_SRC ?= "git://github.com/OpenNuvoton/MA35D1_u-boot-v2020.07.git;protocol=https"
+UBOOT_SRC ?= "git://github.com/MA35D1/u-boot-v2020.07.git;branch=master;protocol=https"
 
 SRCBRANCH = "2020.07"
 SRC_URI = "${UBOOT_SRC}"
@@ -36,21 +36,21 @@ do_compile_append() {
                 if [ $j -eq $i ]
                 then
                     if [ -n "${UBOOT_INITIAL_ENV}" ]; then
-                        if [ "${TFA_DTB}" = "ma35d1xx0" ]; then
+			if echo ${TFA_DTB} | grep -q "512"; then
                             sed -i "s/kernelmem=256M/kernelmem=512M/1" ${B}/${config}/u-boot-initial-env-${type}
                             if ${@bb.utils.contains('MACHINE_FEATURES', 'optee', 'true', 'false', d)}; then
                                 sed -i "s/kernelmem=512M/kernelmem=504M/1" ${B}/${config}/u-boot-initial-env-${type}
                             fi
-                        elif [ "${TFA_DTB}" = "ma35d1xx8" ]; then
+			elif echo ${TFA_DTB} | grep -q "256"; then
                             if ${@bb.utils.contains('MACHINE_FEATURES', 'optee', 'true', 'false', d)}; then
                                 sed -i "s/kernelmem=256M/kernelmem=248M/1" ${B}/${config}/u-boot-initial-env-${type}
                             fi
-                        elif  [ "${TFA_DTB}" = "ma35d1xx7" ]; then
+			elif echo ${TFA_DTB} | grep -q "128"; then
                             sed -i "s/kernelmem=256M/kernelmem=128M/1" ${B}/${config}/u-boot-initial-env-${type}
                             if ${@bb.utils.contains('MACHINE_FEATURES', 'optee', 'true', 'false', d)}; then
                                 sed -i "s/kernelmem=128M/kernelmem=120M/1" ${B}/${config}/u-boot-initial-env-${type}
                             fi
-                        elif  [ "${TFA_DTB}" = "ma35d1xx0-mt-1gb" ]; then
+			elif echo ${TFA_DTB} | grep -q "1g"; then
                             sed -i "s/kernelmem=256M/kernelmem=1024M/1" ${B}/${config}/u-boot-initial-env-${type}
                             if ${@bb.utils.contains('MACHINE_FEATURES', 'optee', 'true', 'false', d)}; then
                                 sed -i "s/kernelmem=1024M/kernelmem=1016M/1" ${B}/${config}/u-boot-initial-env-${type}
@@ -61,7 +61,7 @@ do_compile_append() {
                             if [ "${config}" = "ma35d1_sdcard0_defconfig" ]; then
                                 sed -i "s/mmc_block=mmcblk1p1/mmc_block=mmcblk0p1/1" ${B}/${config}/u-boot-initial-env-${type}
                             fi
-                            if [ "${MACHINE}" = "ma35d1-iot" ]; then
+                            if echo "${MACHINE}" | grep -q "iot"; then
                                 sed -i "s/mmc_block=mmcblk1p1/mmc_block=mmcblk0p1/1" ${B}/${config}/u-boot-initial-env-${type}
                             fi
                         fi

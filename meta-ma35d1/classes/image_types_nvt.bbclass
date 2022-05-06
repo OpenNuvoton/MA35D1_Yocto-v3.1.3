@@ -148,7 +148,7 @@ IMAGE_CMD_sdcard() {
             nuwriter/nuwriter -c nuwriter/header-sdcard.json; \
             cp conv/header.bin header-${IMAGE_BASENAME}-${MACHINE}-sdcard.bin; \
 
-            $(cat nuwriter/pack-sdcard.json | jq 'setpath(["image",9,"offset"];"'$(expr ${BOOT_SPACE_ALIGNED} \* 1024 + ${IMAGE_ROOTFS_ALIGNMENT} \* 1024)'")' > nuwriter/pack-sdcard-tmp.json); \
+            $(cat nuwriter/pack-sdcard.json | jq 'setpath(["image",8,"offset"];"'$(expr ${BOOT_SPACE_ALIGNED} \* 1024 + ${IMAGE_ROOTFS_ALIGNMENT} \* 1024)'")' > nuwriter/pack-sdcard-tmp.json); \
             cp nuwriter/pack-sdcard-tmp.json nuwriter/pack-sdcard.json; \
             rm nuwriter/pack-sdcard-tmp.json; \
             nuwriter/nuwriter -p nuwriter/pack-sdcard.json; \
@@ -160,8 +160,6 @@ IMAGE_CMD_sdcard() {
 
         # 0x400
         dd if=${DEPLOY_DIR_IMAGE}/header-${IMAGE_BASENAME}-${MACHINE}-sdcard.bin of=${SDCARD} conv=notrunc seek=2 bs=512
-	# 0x10000
-        dd if=${DEPLOY_DIR_IMAGE}/ddrimg_tfa.bin of=${SDCARD} conv=notrunc seek=128 bs=512
         # 0x20000
         dd if=${DEPLOY_DIR_IMAGE}/bl2-ma35d1.dtb of=${SDCARD} conv=notrunc seek=256 bs=512
         # 0x30000

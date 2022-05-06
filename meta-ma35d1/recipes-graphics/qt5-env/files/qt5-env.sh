@@ -3,4 +3,5 @@
 export QT_QPA_FONTDIR=/usr/share/fonts/truetype
 export XDG_RUNTIME_DIR="/tmp/runtime-root"
 export QT_QPA_PLATFORM="linuxfb"
+export QT_QPA_FB_TSLIB=1
 
