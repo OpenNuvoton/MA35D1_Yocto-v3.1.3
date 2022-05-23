@@ -5,7 +5,7 @@ SECTION = "bootloaders"
 LICENSE = "BSD-3-Clause"
 LIC_FILES_CHKSUM = "file://license.rst;md5=1dd070c98a281d18d9eefd938729b031"
 
-SRC_URI = "git://github.com/MA35D1/arm-trusted-firmware-v2.3.git;branch=master;protocol=https"
+SRC_URI = "git://github.com/OpenNuvoton/MA35D1_arm-trusted-firmware-v2.3.git;branch=master;protocol=https"
 SRCREV = "${TFA_SRCREV}"
 
 TF_VERSION = "2.3"
