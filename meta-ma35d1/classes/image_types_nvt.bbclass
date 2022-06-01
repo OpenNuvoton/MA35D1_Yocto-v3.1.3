@@ -1,11 +1,13 @@
 inherit image_types
 
+DEPENDS = " python3-nuwriter-native "
+
 IMAGE_TYPEDEP_nand = "ubi"
 do_image_nand[depends] = "virtual/trusted-firmware-a:do_deploy \
 		          ${@bb.utils.contains('MACHINE_FEATURES', 'optee', 'virtual/optee-os:do_deploy', '',d)} \
                           virtual/kernel:do_deploy \
                           virtual/bootloader:do_deploy \
-                          python3-nuwriter-native:do_deploy \
+                          python3-nuwriter-native:do_install \
                           jq-native:do_populate_sysroot \
                           mtd-utils-native:do_populate_sysroot \
                          "
@@ -15,7 +17,7 @@ do_image_spinand[depends] = "virtual/trusted-firmware-a:do_deploy \
                              ${@bb.utils.contains('MACHINE_FEATURES', 'optee', 'virtual/optee-os:do_deploy', '',d)} \
                              virtual/kernel:do_deploy \
                              virtual/bootloader:do_deploy \
-                             python3-nuwriter-native:do_deploy \
+                             python3-nuwriter-native:do_install \
                              jq-native:do_populate_sysroot \
                              mtd-utils-native:do_populate_sysroot \
                              ${@bb.utils.contains('IMAGE_FSTYPES', 'nand', '${IMAGE_BASENAME}:do_image_nand', '', d)} \
@@ -27,13 +29,23 @@ do_image_sdcard[depends] = "parted-native:do_populate_sysroot \
                             ${@bb.utils.contains('MACHINE_FEATURES', 'optee', 'virtual/optee-os:do_deploy', '',d)} \
                             virtual/kernel:do_deploy \
                             virtual/bootloader:do_deploy \
-                            python3-nuwriter-native:do_deploy \
+                            python3-nuwriter-native:do_install \
                             jq-native:do_populate_sysroot \
                             ${@bb.utils.contains('IMAGE_FSTYPES', 'nand', '${IMAGE_BASENAME}:do_image_nand', '', d)} \
                             ${@bb.utils.contains('IMAGE_FSTYPES', 'spinand', '${IMAGE_BASENAME}:do_image_spinand', '', d)} \
                            "
+NUWRITER_DIR="${RECIPE_SYSROOT_NATIVE}${datadir}/nuwriter"
 
 IMAGE_CMD_spinand() {
+    if [ -f ${DEPLOY_DIR_IMAGE}/${IMAGE_BASENAME}-${MACHINE}-enc-spinand.pack ]; then
+        rm ${DEPLOY_DIR_IMAGE}/header-${IMAGE_BASENAME}-${MACHINE}-enc-spinand.bin -f
+        rm ${DEPLOY_DIR_IMAGE}/${IMAGE_BASENAME}-${MACHINE}-enc-spinand.pack -f
+        rm ${DEPLOY_DIR_IMAGE}/pack-${IMAGE_BASENAME}-${MACHINE}-enc-spinand.bin -f
+    elif [ -f ${DEPLOY_DIR_IMAGE}/${IMAGE_BASENAME}-${MACHINE}-spinand.pack ]; then
+        rm ${DEPLOY_DIR_IMAGE}/header-${IMAGE_BASENAME}-${MACHINE}-spinand.bin -f
+        rm ${DEPLOY_DIR_IMAGE}/${IMAGE_BASENAME}-${MACHINE}-spinand.pack -f
+        rm ${DEPLOY_DIR_IMAGE}/pack-${IMAGE_BASENAME}-${MACHINE}-spinand.bin -f
+    fi
     # Generate the FIP image  with the bl2.bin and required Device Tree
     if ${@bb.utils.contains('MACHINE_FEATURES', 'optee', 'true', 'false', d)}; then
         ${DEPLOY_DIR_IMAGE}/fiptool create \
@@ -54,20 +66,58 @@ IMAGE_CMD_spinand() {
     (cd ${DEPLOY_DIR_IMAGE}; ubinize ${UBINIZE_ARGS} -o u-boot-initial-env.ubi-spinand u-boot-initial-env-spinand-ubi.cfg)
 
     if [ -f ${IMGDEPLOYDIR}/${IMAGE_NAME}.rootfs.ubi ]; then
-        (cd ${DEPLOY_DIR_IMAGE}; \
-         ln -sf ${IMGDEPLOYDIR}/${IMAGE_NAME}.rootfs.ubi rootfs.ubi-spinand; \
-         nuwriter/nuwriter -c nuwriter/header-spinand.json; \
-         cp conv/header.bin header-${IMAGE_BASENAME}-${MACHINE}-spinand.bin; \
-         nuwriter/nuwriter -p nuwriter/pack-spinand.json; \
-         cp pack/pack.bin pack-${IMAGE_BASENAME}-${MACHINE}-spinand.bin; \
-         ln -sf pack-${IMAGE_BASENAME}-${MACHINE}-spinand.bin ${IMAGE_BASENAME}-${MACHINE}-spinand.pack; \
-         rm rootfs.ubi-spinand \
-         rm -rf $(date "+%m%d-*"); \
-        )
+        if [ "${SECURE_BOOT}" = "no" ]; then
+            (cd ${DEPLOY_DIR_IMAGE}; \
+             cp ${NUWRITER_DIR}/*-spinand.json  nuwriter; \
+             ln -sf ${IMGDEPLOYDIR}/${IMAGE_NAME}.rootfs.ubi rootfs.ubi-spinand; \
+             nuwriter/nuwriter -c nuwriter/header-spinand.json; \
+             cp conv/header.bin header-${IMAGE_BASENAME}-${MACHINE}-spinand.bin; \
+             nuwriter/nuwriter -p nuwriter/pack-spinand.json; \
+             cp pack/pack.bin pack-${IMAGE_BASENAME}-${MACHINE}-spinand.bin; \
+             ln -sf pack-${IMAGE_BASENAME}-${MACHINE}-spinand.bin ${IMAGE_BASENAME}-${MACHINE}-spinand.pack; \
+             rm rootfs.ubi-spinand \
+             rm -rf $(date "+%m%d-*");)
+             if [ -f ${DEPLOY_DIR_IMAGE}/enc_bl2-ma35d1-spinand.dtb ]; then
+                rm ${DEPLOY_DIR_IMAGE}/enc_bl2-ma35d1-spinand.dtb
+                rm ${DEPLOY_DIR_IMAGE}/enc_bl2-ma35d1-spinand.bin
+             fi
+        else
+            (cd ${DEPLOY_DIR_IMAGE}; \
+             ln -sf ${IMGDEPLOYDIR}/${IMAGE_NAME}.rootfs.ext4 rootfs.ext4-sdcard; \
+             $(cat ${NUWRITER_DIR}/header-spinand.json | jq -r ".header.secureboot = \"yes\"" | \
+             jq -r ".header.aeskey = \"${AES_KEY}\"" | jq -r ".header.ecdsakey = \"${ECDSA_KEY}\"" \
+             > nuwriter/header-spinand.json); \
+             ln -sf ${IMGDEPLOYDIR}/${IMAGE_NAME}.rootfs.ubi rootfs.ubi-spinand; \
+             nuwriter/nuwriter -c nuwriter/header-spinand.json; \
+             cp conv/header.bin header-${IMAGE_BASENAME}-${MACHINE}-enc-spinand.bin; \
+             cp conv/enc_bl2-ma35d1.dtb enc_bl2-ma35d1-spinand.dtb; \
+             cp conv/enc_bl2-ma35d1.bin enc_bl2-ma35d1-spinand.bin; \
+             echo "{\""publicx"\": \""$(head -6 conv/header_key.txt | tail +6)"\", \
+             \""publicy"\": \""$(head -7 conv/header_key.txt | tail +7)"\", \
+             \""aeskey"\": \""$(head -2 conv/header_key.txt | tail +2)"\"}" | \
+             jq  > nuwriter/otp_key-spinand.json; \
+             $(cat ${NUWRITER_DIR}/pack-spinand.json | \
+             jq 'setpath(["image",1,"file"];"enc_bl2-ma35d1-spinand.dtb")' | \
+             jq 'setpath(["image",2,"file"];"enc_bl2-ma35d1-spinand.bin")' > nuwriter/pack-spinand.json); \
+             nuwriter/nuwriter -p nuwriter/pack-spinand.json; \
+             cp pack/pack.bin pack-${IMAGE_BASENAME}-${MACHINE}-enc-spinand.bin; \
+             ln -sf pack-${IMAGE_BASENAME}-${MACHINE}-enc-spinand.bin ${IMAGE_BASENAME}-${MACHINE}-enc-spinand.pack; \
+             rm rootfs.ubi-spinand \
+             rm -rf $(date "+%m%d-*");)
+        fi
     fi
 } 
 
 IMAGE_CMD_nand() {
+    if [ -f ${DEPLOY_DIR_IMAGE}/${IMAGE_BASENAME}-${MACHINE}-enc-nand.pack ]; then
+        rm ${DEPLOY_DIR_IMAGE}/header-${IMAGE_BASENAME}-${MACHINE}-enc-nand.bin -f
+        rm ${DEPLOY_DIR_IMAGE}/${IMAGE_BASENAME}-${MACHINE}-enc-nand.pack -f
+        rm ${DEPLOY_DIR_IMAGE}/pack-${IMAGE_BASENAME}-${MACHINE}-enc-nand.bin -f
+    elif [ -f ${DEPLOY_DIR_IMAGE}/${IMAGE_BASENAME}-${MACHINE}-nand.pack ]; then
+        rm ${DEPLOY_DIR_IMAGE}/header-${IMAGE_BASENAME}-${MACHINE}-nand.bin -f
+        rm ${DEPLOY_DIR_IMAGE}/${IMAGE_BASENAME}-${MACHINE}-nand.pack -f
+        rm ${DEPLOY_DIR_IMAGE}/pack-${IMAGE_BASENAME}-${MACHINE}-nand.bin -f
+    fi
     # Generate the FIP image  with the bl2.bin and required Device Tree
     if ${@bb.utils.contains('MACHINE_FEATURES', 'optee', 'true', 'false', d)}; then
         ${DEPLOY_DIR_IMAGE}/fiptool create \
@@ -88,20 +138,48 @@ IMAGE_CMD_nand() {
    (cd ${DEPLOY_DIR_IMAGE}; ubinize ${UBINIZE_ARGS} -o u-boot-initial-env.ubi-nand u-boot-initial-env-nand-ubi.cfg)
 
     if [ -f ${IMGDEPLOYDIR}/${IMAGE_NAME}.rootfs.ubi ]; then
-        (cd ${DEPLOY_DIR_IMAGE}; \
-         ln -sf ${IMGDEPLOYDIR}/${IMAGE_NAME}.rootfs.ubi rootfs.ubi-nand; \
-         nuwriter/nuwriter -c nuwriter/header-nand.json; \
-         cp conv/header.bin header-${IMAGE_BASENAME}-${MACHINE}-nand.bin; \
-         nuwriter/nuwriter -p nuwriter/pack-nand.json; \
-         cp pack/pack.bin pack-${IMAGE_BASENAME}-${MACHINE}-nand.bin; \
-         ln -sf pack-${IMAGE_BASENAME}-${MACHINE}-nand.bin ${IMAGE_BASENAME}-${MACHINE}-nand.pack; \
-         rm rootfs.ubi-nand \
-         rm -rf $(date "+%m%d-*"); \
-        )
+        if [ "${SECURE_BOOT}" = "no" ]; then
+           (cd ${DEPLOY_DIR_IMAGE}; \
+            ln -sf ${IMGDEPLOYDIR}/${IMAGE_NAME}.rootfs.ubi rootfs.ubi-nand; \
+            cp ${NUWRITER_DIR}/*-nand.json  nuwriter; \
+            nuwriter/nuwriter -c nuwriter/header-nand.json; \
+            cp conv/header.bin header-${IMAGE_BASENAME}-${MACHINE}-nand.bin; \
+            nuwriter/nuwriter -p nuwriter/pack-nand.json; \
+            cp pack/pack.bin pack-${IMAGE_BASENAME}-${MACHINE}-nand.bin; \
+            ln -sf pack-${IMAGE_BASENAME}-${MACHINE}-nand.bin ${IMAGE_BASENAME}-${MACHINE}-nand.pack; \
+            rm rootfs.ubi-nand \
+            rm -rf $(date "+%m%d-*");)
+            if [ -f ${DEPLOY_DIR_IMAGE}/enc_bl2-ma35d1-nand.dtb ]; then
+                rm ${DEPLOY_DIR_IMAGE}/enc_bl2-ma35d1-nand.dtb
+                rm ${DEPLOY_DIR_IMAGE}/enc_bl2-ma35d1-nand.bin
+            fi
+        else
+           (cd ${DEPLOY_DIR_IMAGE}; \
+            ln -sf ${IMGDEPLOYDIR}/${IMAGE_NAME}.rootfs.ubi rootfs.ubi-nand; \
+            $(cat ${NUWRITER_DIR}/header-nand.json | jq -r ".header.secureboot = \"yes\"" | \
+            jq -r ".header.aeskey = \"${AES_KEY}\"" | jq -r ".header.ecdsakey = \"${ECDSA_KEY}\"" \
+            > nuwriter/header-nand.json); \
+            nuwriter/nuwriter -c nuwriter/header-nand.json; \
+            cp conv/header.bin header-${IMAGE_BASENAME}-${MACHINE}-enc-nand.bin; \
+            cp conv/enc_bl2-ma35d1.dtb enc_bl2-ma35d1-nand.dtb; \
+            cp conv/enc_bl2-ma35d1.bin enc_bl2-ma35d1-nand.bin; \
+            echo "{\""publicx"\": \""$(head -6 conv/header_key.txt | tail +6)"\", \
+            \""publicy"\": \""$(head -7 conv/header_key.txt | tail +7)"\", \
+            \""aeskey"\": \""$(head -2 conv/header_key.txt | tail +2)"\"}" | \
+            jq  > nuwriter/otp_key-nand.json; \
+            $(cat ${NUWRITER_DIR}/pack-nand.json | \
+            jq 'setpath(["image",1,"file"];"enc_bl2-ma35d1-nand.dtb")' | \
+            jq 'setpath(["image",2,"file"];"enc_bl2-ma35d1-nand.bin")' > nuwriter/pack-nand.json); \
+            nuwriter/nuwriter -p nuwriter/pack-nand.json; \
+            cp pack/pack.bin pack-${IMAGE_BASENAME}-${MACHINE}-enc-nand.bin; \
+            ln -sf pack-${IMAGE_BASENAME}-${MACHINE}-enc-nand.bin ${IMAGE_BASENAME}-${MACHINE}-enc-nand.pack; \
+            rm rootfs.ubi-nand; \
+            rm -rf $(date "+%m%d-*");) \
+        fi
     fi
 }
 
-SDCARD = "${IMGDEPLOYDIR}/${IMAGE_NAME}.rootfs.sdcard"
+SDCARD ?= "${IMGDEPLOYDIR}/${IMAGE_NAME}.rootfs.sdcard"
 
 # Boot partition size [in KiB]
 BOOT_SPACE ?= "32768"
@@ -111,6 +189,15 @@ IMAGE_ROOTFS_ALIGNMENT ?= "4096"
 
 IMAGE_CMD_sdcard() {
     BOOT_SPACE_ALIGNED=$(expr ${BOOT_SPACE} - 1 )
+    if [ -f ${DEPLOY_DIR_IMAGE}/${IMAGE_BASENAME}-${MACHINE}-enc-sdcard.pack ]; then
+	rm ${DEPLOY_DIR_IMAGE}/header-${IMAGE_BASENAME}-${MACHINE}-enc-sdcard.bin -f
+        rm ${DEPLOY_DIR_IMAGE}/${IMAGE_BASENAME}-${MACHINE}-enc-sdcard.pack -f
+        rm ${DEPLOY_DIR_IMAGE}/pack-${IMAGE_BASENAME}-${MACHINE}-enc-sdcard.bin -f
+    elif [ -f ${DEPLOY_DIR_IMAGE}/${IMAGE_BASENAME}-${MACHINE}-sdcard.pack ]; then
+	rm ${DEPLOY_DIR_IMAGE}/header-${IMAGE_BASENAME}-${MACHINE}-sdcard.bin -f
+        rm ${DEPLOY_DIR_IMAGE}/${IMAGE_BASENAME}-${MACHINE}-sdcard.pack -f
+        rm ${DEPLOY_DIR_IMAGE}/pack-${IMAGE_BASENAME}-${MACHINE}-sdcard.bin -f
+    fi
 
     # Generate the FIP image  with the bl2.bin and required Device Tree
     if ${@bb.utils.contains('MACHINE_FEATURES', 'optee', 'true', 'false', d)}; then
@@ -130,9 +217,7 @@ IMAGE_CMD_sdcard() {
     fi
 
     if [ -f ${IMGDEPLOYDIR}/${IMAGE_NAME}.rootfs.ext4 ]; then
-
         SDCARD_SIZE=$(expr ${BOOT_SPACE_ALIGNED} \+ ${IMAGE_ROOTFS_ALIGNMENT} \+ $ROOTFS_SIZE \+ ${IMAGE_ROOTFS_ALIGNMENT})
-
         # Initialize a sparse file
         dd if=/dev/zero of=${SDCARD} bs=1 count=0 seek=$(expr 1024 \* ${SDCARD_SIZE})
         parted -s ${SDCARD} mklabel msdos
@@ -142,12 +227,12 @@ IMAGE_CMD_sdcard() {
         # MBR table for nuwriter
         dd if=/dev/zero of=${DEPLOY_DIR_IMAGE}/MBR.scdard.bin bs=1 count=0 seek=512
         dd if=${SDCARD} of=${DEPLOY_DIR_IMAGE}/MBR.scdard.bin conv=notrunc seek=0 count=1 bs=512
-
-        ( cd ${DEPLOY_DIR_IMAGE}; \
+        if [ "${SECURE_BOOT}" = "no" ]; then
+           (cd ${DEPLOY_DIR_IMAGE}; \
+            cp ${NUWRITER_DIR}/*-sdcard.json  nuwriter; \
             ln -sf ${IMGDEPLOYDIR}/${IMAGE_NAME}.rootfs.ext4 rootfs.ext4-sdcard; \
             nuwriter/nuwriter -c nuwriter/header-sdcard.json; \
             cp conv/header.bin header-${IMAGE_BASENAME}-${MACHINE}-sdcard.bin; \
-
             $(cat nuwriter/pack-sdcard.json | jq 'setpath(["image",8,"offset"];"'$(expr ${BOOT_SPACE_ALIGNED} \* 1024 + ${IMAGE_ROOTFS_ALIGNMENT} \* 1024)'")' > nuwriter/pack-sdcard-tmp.json); \
             cp nuwriter/pack-sdcard-tmp.json nuwriter/pack-sdcard.json; \
             rm nuwriter/pack-sdcard-tmp.json; \
@@ -155,15 +240,52 @@ IMAGE_CMD_sdcard() {
             cp pack/pack.bin pack-${IMAGE_BASENAME}-${MACHINE}-sdcard.bin; \
             ln -sf pack-${IMAGE_BASENAME}-${MACHINE}-sdcard.bin ${IMAGE_BASENAME}-${MACHINE}-sdcard.pack; \
             rm rootfs.ext4-sdcard; \
-            rm -rf $(date "+%m%d-*"); \
-        )
+            rm -rf $(date "+%m%d-*");)
+            if [ -f ${DEPLOY_DIR_IMAGE}/enc_bl2-ma35d1-sdcard.dtb ]; then
+                rm ${DEPLOY_DIR_IMAGE}/enc_bl2-ma35d1-sdcard.dtb
+                rm ${DEPLOY_DIR_IMAGE}/enc_bl2-ma35d1-sdcard.bin
+            fi
+        else
+           (cd ${DEPLOY_DIR_IMAGE}; \
+            ln -sf ${IMGDEPLOYDIR}/${IMAGE_NAME}.rootfs.ext4 rootfs.ext4-sdcard; \
+            $(cat ${NUWRITER_DIR}/header-sdcard.json | jq -r ".header.secureboot = \"yes\"" | \
+            jq -r ".header.aeskey = \"${AES_KEY}\"" | jq -r ".header.ecdsakey = \"${ECDSA_KEY}\"" \
+            > nuwriter/header-sdcard.json); \
+            nuwriter/nuwriter -c nuwriter/header-sdcard.json; \
+            cp conv/enc_bl2-ma35d1.dtb enc_bl2-ma35d1-sdcard.dtb; \
+            cp conv/enc_bl2-ma35d1.bin enc_bl2-ma35d1-sdcard.bin; \
+            echo "{\""publicx"\": \""$(head -6 conv/header_key.txt | tail +6)"\", \
+            \""publicy"\": \""$(head -7 conv/header_key.txt | tail +7)"\", \
+            \""aeskey"\": \""$(head -2 conv/header_key.txt | tail +2)"\"}" | \
+            jq  > nuwriter/otp_key-sdcard.json; \
+            cp conv/header.bin header-${IMAGE_BASENAME}-${MACHINE}-enc-sdcard.bin; \
+            $(cat ${NUWRITER_DIR}/pack-sdcard.json | \
+            jq 'setpath(["image",2,"file"];"enc_bl2-ma35d1-sdcard.dtb")' | \
+            jq 'setpath(["image",3,"file"];"enc_bl2-ma35d1-sdcard.bin")' | \
+            jq 'setpath(["image",8,"offset"];"'$(expr ${BOOT_SPACE_ALIGNED} \* 1024 + \
+            ${IMAGE_ROOTFS_ALIGNMENT} \* 1024)'")' > nuwriter/pack-sdcard.json); \
+            nuwriter/nuwriter -p nuwriter/pack-sdcard.json; \
+            cp pack/pack.bin pack-${IMAGE_BASENAME}-${MACHINE}-enc-sdcard.bin; \
+            ln -sf pack-${IMAGE_BASENAME}-${MACHINE}-enc-sdcard.bin ${IMAGE_BASENAME}-${MACHINE}-enc-sdcard.pack; \
+            rm rootfs.ext4-sdcard; \
+            rm -rf $(date "+%m%d-*");)
+        fi
 
-        # 0x400
-        dd if=${DEPLOY_DIR_IMAGE}/header-${IMAGE_BASENAME}-${MACHINE}-sdcard.bin of=${SDCARD} conv=notrunc seek=2 bs=512
-        # 0x20000
-        dd if=${DEPLOY_DIR_IMAGE}/bl2-ma35d1.dtb of=${SDCARD} conv=notrunc seek=256 bs=512
-        # 0x30000
-        dd if=${DEPLOY_DIR_IMAGE}/bl2-ma35d1.bin of=${SDCARD} conv=notrunc seek=384 bs=512
+        if [ "${SECURE_BOOT}" = "no" ]; then
+            # 0x400
+            dd if=${DEPLOY_DIR_IMAGE}/header-${IMAGE_BASENAME}-${MACHINE}-sdcard.bin of=${SDCARD} conv=notrunc seek=2 bs=512
+            # 0x20000
+            dd if=${DEPLOY_DIR_IMAGE}/bl2-ma35d1.dtb of=${SDCARD} conv=notrunc seek=256 bs=512
+            # 0x30000
+            dd if=${DEPLOY_DIR_IMAGE}/bl2-ma35d1.bin of=${SDCARD} conv=notrunc seek=384 bs=512
+        else
+            # 0x400
+        dd if=${DEPLOY_DIR_IMAGE}/header-${IMAGE_BASENAME}-${MACHINE}-enc-sdcard.bin of=${SDCARD} conv=notrunc seek=2 bs=512
+            # 0x20000
+            dd if=${DEPLOY_DIR_IMAGE}/enc_bl2-ma35d1-sdcard.dtb of=${SDCARD} conv=notrunc seek=256 bs=512
+            # 0x30000
+            dd if=${DEPLOY_DIR_IMAGE}/enc_bl2-ma35d1-sdcard.bin of=${SDCARD} conv=notrunc seek=384 bs=512
+        fi
         # 0x40000
         dd if=${DEPLOY_DIR_IMAGE}/u-boot-initial-env.bin-sdcard of=${SDCARD} conv=notrunc seek=512 bs=512
         # 0xC0000

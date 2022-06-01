@@ -9,7 +9,7 @@ RPROVIDES_${PN} += "virtual/optee-os virtual/systemd-bootconf"
 # Configure build dir for externalsrc class usage through devtool
 #EXTERNALSRC_BUILD_pn-${PN} = "${WORKDIR}/build"
 
-DEPENDS += "dtc-native python3-pycryptodomex-native python3-pycrypto-native python3-pyelftools-native"
+DEPENDS += "dtc-native python3-pycryptodomex-native python3-pycryptodome-native python3-pyelftools-native"
 
 inherit deploy python3native
 

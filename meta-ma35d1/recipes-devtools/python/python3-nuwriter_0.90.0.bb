@@ -27,10 +27,9 @@ DEPENDS += " \
     pyinstaller-hooks-contrib-native \
     python3-altgraph-native \
     python3-pyusb-native \
-    python3-pycrypto-native \
+    python3-pycryptodome-native \
     python3-crcmod-native \
     python3-tqdm-native \
-    python3-crcmod-native \
     python3-ecdsa-native \
     python3-six-native \
     jq-native \
@@ -62,20 +61,14 @@ do_deploy() {
     install -d ${DEPLOYDIR}/${BOOT_TOOLS}/nuwriter
     install -d ${DEPLOYDIR}/${BOOT_TOOLS}/nuwriter/ddrimg
     cp -rf ${B}/nuwriter/* ${DEPLOYDIR}/${BOOT_TOOLS}/nuwriter
-    cp ${WORKDIR}/header-nand.json  ${DEPLOYDIR}/${BOOT_TOOLS}/nuwriter/
-    cp ${WORKDIR}/header-spinand.json  ${DEPLOYDIR}/${BOOT_TOOLS}/nuwriter/
-    cp ${WORKDIR}/header-sdcard.json  ${DEPLOYDIR}/${BOOT_TOOLS}/nuwriter/
-    cp ${WORKDIR}/pack-nand.json  ${DEPLOYDIR}/${BOOT_TOOLS}/nuwriter/
-    cp ${WORKDIR}/pack-spinand.json  ${DEPLOYDIR}/${BOOT_TOOLS}/nuwriter/
-    cp ${WORKDIR}/pack-sdcard.json  ${DEPLOYDIR}/${BOOT_TOOLS}/nuwriter/
     
     cp ${S}/ddrimg/* ${DEPLOYDIR}/${BOOT_TOOLS}/nuwriter/ddrimg/
     cp ${S}/xusb.bin  ${DEPLOYDIR}/${BOOT_TOOLS}/nuwriter/
     cp ${S}/xusb.bin  ${DEPLOYDIR}/${BOOT_TOOLS}/
-
 }
 
 FILES_${PN} = ""
+addtask install after do_compile
 addtask deploy after do_compile
 INHIBIT_SYSROOT_STRIP = "1"
 INSANK_SKIP_${PN}_append = "already-stripped"

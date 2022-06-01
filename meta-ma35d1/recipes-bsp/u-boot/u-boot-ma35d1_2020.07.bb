@@ -65,6 +65,9 @@ do_compile_append() {
                                 sed -i "s/mmc_block=mmcblk1p1/mmc_block=mmcblk0p1/1" ${B}/${config}/u-boot-initial-env-${type}
                             fi
                         fi
+			if [ "${type}" = "spinand" ]; then
+				sed -i "s/boot_targets=/boot_targets=mtd0 /1" ${B}/${config}/u-boot-initial-env-${type}
+			fi
 
                         ${B}/${config}/tools/mkenvimage -s 0x10000 -o ${B}/${config}/u-boot-initial-env.bin-${type} ${B}/${config}/u-boot-initial-env-${type}
                     fi
