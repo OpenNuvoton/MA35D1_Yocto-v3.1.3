@@ -12,7 +12,7 @@ DEPENDS_append_x86_class-target    = " nasm-native"
 
 SRC_URI = "${SOURCEFORGE_MIRROR}/${BPN}/${BPN}-${PV}.tar.gz \
            file://0001-libjpeg-turbo-fix-package_qa-error.patch \
-           file://0002-libjpeg-turbo-vc8000.patch \
+           ${@bb.utils.contains('JPEG_HW_DEC', 'yes', 'file://0002-libjpeg-turbo-vc8000.patch', '', d)} \
            "
 
 SRC_URI[sha256sum] = "467b310903832b033fe56cd37720d1b73a6a3bd0171dbf6ff0b620385f4f76d0"
