@@ -75,7 +75,6 @@ IMAGE_CMD_spinand() {
              nuwriter/nuwriter -p nuwriter/pack-spinand.json; \
              cp pack/pack.bin pack-${IMAGE_BASENAME}-${MACHINE}-spinand.bin; \
              ln -sf pack-${IMAGE_BASENAME}-${MACHINE}-spinand.bin ${IMAGE_BASENAME}-${MACHINE}-spinand.pack; \
-             rm rootfs.ubi-spinand \
              rm -rf $(date "+%m%d-*");)
              if [ -f ${DEPLOY_DIR_IMAGE}/enc_bl2-ma35d1-spinand.dtb ]; then
                 rm ${DEPLOY_DIR_IMAGE}/enc_bl2-ma35d1-spinand.dtb
@@ -102,7 +101,6 @@ IMAGE_CMD_spinand() {
              nuwriter/nuwriter -p nuwriter/pack-spinand.json; \
              cp pack/pack.bin pack-${IMAGE_BASENAME}-${MACHINE}-enc-spinand.bin; \
              ln -sf pack-${IMAGE_BASENAME}-${MACHINE}-enc-spinand.bin ${IMAGE_BASENAME}-${MACHINE}-enc-spinand.pack; \
-             rm rootfs.ubi-spinand \
              rm -rf $(date "+%m%d-*");)
         fi
     fi
@@ -147,7 +145,6 @@ IMAGE_CMD_nand() {
             nuwriter/nuwriter -p nuwriter/pack-nand.json; \
             cp pack/pack.bin pack-${IMAGE_BASENAME}-${MACHINE}-nand.bin; \
             ln -sf pack-${IMAGE_BASENAME}-${MACHINE}-nand.bin ${IMAGE_BASENAME}-${MACHINE}-nand.pack; \
-            rm rootfs.ubi-nand \
             rm -rf $(date "+%m%d-*");)
             if [ -f ${DEPLOY_DIR_IMAGE}/enc_bl2-ma35d1-nand.dtb ]; then
                 rm ${DEPLOY_DIR_IMAGE}/enc_bl2-ma35d1-nand.dtb
@@ -173,7 +170,6 @@ IMAGE_CMD_nand() {
             nuwriter/nuwriter -p nuwriter/pack-nand.json; \
             cp pack/pack.bin pack-${IMAGE_BASENAME}-${MACHINE}-enc-nand.bin; \
             ln -sf pack-${IMAGE_BASENAME}-${MACHINE}-enc-nand.bin ${IMAGE_BASENAME}-${MACHINE}-enc-nand.pack; \
-            rm rootfs.ubi-nand; \
             rm -rf $(date "+%m%d-*");) \
         fi
     fi
@@ -239,7 +235,6 @@ IMAGE_CMD_sdcard() {
             nuwriter/nuwriter -p nuwriter/pack-sdcard.json; \
             cp pack/pack.bin pack-${IMAGE_BASENAME}-${MACHINE}-sdcard.bin; \
             ln -sf pack-${IMAGE_BASENAME}-${MACHINE}-sdcard.bin ${IMAGE_BASENAME}-${MACHINE}-sdcard.pack; \
-            rm rootfs.ext4-sdcard; \
             rm -rf $(date "+%m%d-*");)
             if [ -f ${DEPLOY_DIR_IMAGE}/enc_bl2-ma35d1-sdcard.dtb ]; then
                 rm ${DEPLOY_DIR_IMAGE}/enc_bl2-ma35d1-sdcard.dtb
@@ -267,7 +262,6 @@ IMAGE_CMD_sdcard() {
             nuwriter/nuwriter -p nuwriter/pack-sdcard.json; \
             cp pack/pack.bin pack-${IMAGE_BASENAME}-${MACHINE}-enc-sdcard.bin; \
             ln -sf pack-${IMAGE_BASENAME}-${MACHINE}-enc-sdcard.bin ${IMAGE_BASENAME}-${MACHINE}-enc-sdcard.pack; \
-            rm rootfs.ext4-sdcard; \
             rm -rf $(date "+%m%d-*");)
         fi
 
