@@ -71,6 +71,12 @@ python do_install() {
             cmd = "cp "+ dirPath + "/" + file +" "+ d.getVar('D',1) + d.getVar('exec_prefix',1) + "/m4proj"
             f.write("cmd="+cmd+"\n")
             subprocess.call(cmd,shell=True,stdout=f)
+
+    for file in os.listdir(d.getVar('D',1) + d.getVar('exec_prefix',1) + "/m4proj"):
+        if fnmatch.fnmatch(file, '*.elf'):
+            cmdx = d.getVar('GCC_PATH',1) + "/arm-none-eabi-objcopy -O binary " + d.getVar('D',1) + d.getVar('exec_prefix',1) + "/m4proj/"+ file + " " + d.getVar('D',1) + d.getVar('exec_prefix',1) + "/m4proj/" + os.path.basename(file).split('.')[0] + ".bin"
+            f.write("cmdx="+cmdx+"\n")
+            subprocess.call(cmdx,shell=True,stdout=f)
     subprocess.call("chmod 644 " + d.getVar('D',1) + d.getVar('exec_prefix',1)+ "/m4proj/*",shell=True,stdout=f)
     os.chdir(root)
     f.close()

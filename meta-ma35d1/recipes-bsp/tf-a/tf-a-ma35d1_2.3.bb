@@ -41,64 +41,70 @@ PLATFORM = "${TFA_PLATFORM}"
 export CROSS_COMPILE="${TARGET_PREFIX}"
 export ARCH="arm64"
 do_compile() {
+
+    TFA_OPT=" NEED_BL31=yes NEED_BL33=yes"
+    if [ "${TFA_LOAD_M4}" = "yes" ]; then
+        TFA_OPT="${TFA_OPT} NEED_SCP_BL2=yes"
+    fi
     if ${@bb.utils.contains('MACHINE_FEATURES', 'optee', 'true', 'false', d)}; then
+        TFA_OPT="${TFA_OPT} NEED_BL33=yes"
 	if echo ${TFA_DTB} | grep -q "256"; then
-            oe_runmake PLAT=${PLATFORM} NEED_BL31=yes NEED_BL32=yes NEED_BL33=yes -C ${S} realclean
-            oe_runmake PLAT=${PLATFORM} NEED_BL31=yes NEED_BL32=yes NEED_BL33=yes -C ${S} all
-            oe_runmake PLAT=${PLATFORM} NEED_BL31=yes NEED_BL32=yes NEED_BL33=yes -C ${S} fiptool
+            oe_runmake PLAT=${PLATFORM} ${TFA_OPT} -C ${S} realclean
+            oe_runmake PLAT=${PLATFORM} ${TFA_OPT} -C ${S} all
+            oe_runmake PLAT=${PLATFORM} ${TFA_OPT} -C ${S} fiptool
 	elif echo ${TFA_DTB} | grep -q "128"; then
-            oe_runmake PLAT=${PLATFORM} NEED_BL31=yes NEED_BL32=yes NEED_BL33=yes \
+            oe_runmake PLAT=${PLATFORM} ${TFA_OPT} \
                 MA35D1_DRAM_SIZE=0x07800000 \
                 MA35D1_DDR_MAX_SIZE=0x8000000 \
                 MA35D1_DRAM_S_BASE=0x87800000 \
                 MA35D1_BL32_BASE=0x87800000 -C ${S} realclean
-            oe_runmake PLAT=${PLATFORM} NEED_BL31=yes NEED_BL32=yes NEED_BL33=yes \
+            oe_runmake PLAT=${PLATFORM} ${TFA_OPT} \
                 MA35D1_DRAM_SIZE=0x07800000 \
                 MA35D1_DDR_MAX_SIZE=0x8000000 \
                 MA35D1_DRAM_S_BASE=0x87800000 \
                 MA35D1_BL32_BASE=0x87800000 -C ${S} all
-            oe_runmake PLAT=${PLATFORM} NEED_BL31=yes NEED_BL32=yes NEED_BL33=yes \
+            oe_runmake PLAT=${PLATFORM} ${TFA_OPT} \
                 MA35D1_DRAM_SIZE=0x07800000 \
                 MA35D1_DDR_MAX_SIZE=0x8000000 \
                 MA35D1_DRAM_S_BASE=0x87800000 \
                 MA35D1_BL32_BASE=0x87800000-C ${S} fiptool
 	elif echo ${TFA_DTB} | grep -q "512"; then
-            oe_runmake PLAT=${PLATFORM} NEED_BL31=yes NEED_BL32=yes NEED_BL33=yes \
+            oe_runmake PLAT=${PLATFORM} ${TFA_OPT} \
                 MA35D1_DRAM_SIZE=0x1F800000 \
                 MA35D1_DDR_MAX_SIZE=0x20000000 \
                 MA35D1_DRAM_S_BASE=0x9F800000 \
                 MA35D1_BL32_BASE=0x9F800000 -C ${S} realclean
-            oe_runmake PLAT=${PLATFORM} NEED_BL31=yes NEED_BL32=yes NEED_BL33=yes \
+            oe_runmake PLAT=${PLATFORM} ${TFA_OPT} \
                 MA35D1_DRAM_SIZE=0x07800000 \
                 MA35D1_DDR_MAX_SIZE=0x20000000 \
                 MA35D1_DRAM_S_BASE=0x9F800000 \
                 MA35D1_BL32_BASE=0x9F800000 -C ${S} all
-            oe_runmake PLAT=${PLATFORM} NEED_BL31=yes NEED_BL32=yes NEED_BL33=yes \
+            oe_runmake PLAT=${PLATFORM} ${TFA_OPT} \
                 MA35D1_DRAM_SIZE=0x1F800000 \
                 MA35D1_DDR_MAX_SIZE=0x20000000 \
                 MA35D1_DRAM_S_BASE=0x9F800000 \
                 MA35D1_BL32_BASE=0x9F800000-C ${S} fiptool
 	elif echo ${TFA_DTB} | grep -q "1g"; then
-            oe_runmake PLAT=${PLATFORM} NEED_BL31=yes NEED_BL32=yes NEED_BL33=yes \
+            oe_runmake PLAT=${PLATFORM} ${TFA_OPT} \
                 MA35D1_DRAM_SIZE=0x3F800000 \
                 MA35D1_DDR_MAX_SIZE=0x40000000 \
                 MA35D1_DRAM_S_BASE=0xBF800000 \
                 MA35D1_BL32_BASE=0xBF800000 -C ${S} realclean
-            oe_runmake PLAT=${PLATFORM} NEED_BL31=yes NEED_BL32=yes NEED_BL33=yes \
+            oe_runmake PLAT=${PLATFORM} ${TFA_OPT} \
                 MA35D1_DRAM_SIZE=0x3F800000 \
                 MA35D1_DDR_MAX_SIZE=0x40000000 \
                 MA35D1_DRAM_S_BASE=0xBF800000 \
                 MA35D1_BL32_BASE=0xFB800000 -C ${S} all
-            oe_runmake PLAT=${PLATFORM} NEED_BL31=yes NEED_BL32=yes NEED_BL33=yes \
+            oe_runmake PLAT=${PLATFORM} ${TFA_OPT} \
                 MA35D1_DRAM_SIZE=0x3F800000 \
                 MA35D1_DDR_MAX_SIZE=0x40000000 \
                 MA35D1_DRAM_S_BASE=0xBF800000 \
                 MA35D1_BL32_BASE=0xBF800000-C ${S} fiptool
 	fi
     else
-       oe_runmake PLAT=${PLATFORM} -C ${S} realclean
-       oe_runmake PLAT=${PLATFORM} -C ${S} all
-       oe_runmake PLAT=${PLATFORM} -C ${S} fiptool
+       oe_runmake PLAT=${PLATFORM} ${TFA_OPT} -C ${S} realclean
+       oe_runmake PLAT=${PLATFORM} ${TFA_OPT} -C ${S} all
+       oe_runmake PLAT=${PLATFORM} ${TFA_OPT} -C ${S} fiptool
     fi
 }
 

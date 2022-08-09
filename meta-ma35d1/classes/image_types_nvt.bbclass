@@ -1,6 +1,6 @@
 inherit image_types
 
-DEPENDS = " python3-nuwriter-native "
+DEPENDS = " python3-nuwriter-native gcc-arm-none-eabi-native"
 
 IMAGE_TYPEDEP_nand = "ubi"
 do_image_nand[depends] = "virtual/trusted-firmware-a:do_deploy \
@@ -10,6 +10,7 @@ do_image_nand[depends] = "virtual/trusted-firmware-a:do_deploy \
                           python3-nuwriter-native:do_install \
                           jq-native:do_populate_sysroot \
                           mtd-utils-native:do_populate_sysroot \
+                          m4proj:do_deploy \
                          "
 
 IMAGE_TYPEDEP_spinand = "ubi"
@@ -20,6 +21,7 @@ do_image_spinand[depends] = "virtual/trusted-firmware-a:do_deploy \
                              python3-nuwriter-native:do_install \
                              jq-native:do_populate_sysroot \
                              mtd-utils-native:do_populate_sysroot \
+                             m4proj:do_deploy \
                              ${@bb.utils.contains('IMAGE_FSTYPES', 'nand', '${IMAGE_BASENAME}:do_image_nand', '', d)} \
                             "
 
@@ -31,10 +33,12 @@ do_image_sdcard[depends] = "parted-native:do_populate_sysroot \
                             virtual/bootloader:do_deploy \
                             python3-nuwriter-native:do_install \
                             jq-native:do_populate_sysroot \
+                            m4proj:do_deploy \
                             ${@bb.utils.contains('IMAGE_FSTYPES', 'nand', '${IMAGE_BASENAME}:do_image_nand', '', d)} \
                             ${@bb.utils.contains('IMAGE_FSTYPES', 'spinand', '${IMAGE_BASENAME}:do_image_spinand', '', d)} \
                            "
 NUWRITER_DIR="${RECIPE_SYSROOT_NATIVE}${datadir}/nuwriter"
+M4_OPJCOPY="${RECIPE_SYSROOT_NATIVE}${datadir}/gcc-arm-none-eabi/arm-none-eabi/bin/objcopy"
 
 IMAGE_CMD_spinand() {
     if [ -f ${DEPLOY_DIR_IMAGE}/${IMAGE_BASENAME}-${MACHINE}-enc-spinand.pack ]; then
@@ -48,18 +52,44 @@ IMAGE_CMD_spinand() {
     fi
     # Generate the FIP image  with the bl2.bin and required Device Tree
     if ${@bb.utils.contains('MACHINE_FEATURES', 'optee', 'true', 'false', d)}; then
-        ${DEPLOY_DIR_IMAGE}/fiptool create \
-            --soc-fw ${DEPLOY_DIR_IMAGE}/bl31-${TFA_PLATFORM}.bin \
-            --tos-fw ${DEPLOY_DIR_IMAGE}/tee-header_v2-optee.bin \
-            --tos-fw-extra1 ${DEPLOY_DIR_IMAGE}/tee-pager_v2-optee.bin \
-            --nt-fw ${DEPLOY_DIR_IMAGE}/u-boot.bin-spinand \
-            ${DEPLOY_DIR_IMAGE}/fip_with_optee-${IMAGE_BASENAME}-${MACHINE}.bin-spinand
+        if [ "${TFA_LOAD_M4}" = "no" ]; then
+            ${DEPLOY_DIR_IMAGE}/fiptool create \
+                --soc-fw ${DEPLOY_DIR_IMAGE}/bl31-${TFA_PLATFORM}.bin \
+                --tos-fw ${DEPLOY_DIR_IMAGE}/tee-header_v2-optee.bin \
+                --tos-fw-extra1 ${DEPLOY_DIR_IMAGE}/tee-pager_v2-optee.bin \
+                --nt-fw ${DEPLOY_DIR_IMAGE}/u-boot.bin-spinand \
+                ${DEPLOY_DIR_IMAGE}/fip_with_optee-${IMAGE_BASENAME}-${MACHINE}.bin-spinand
+        else
+            if [ -f ${DEPLOY_DIR_IMAGE}/${TFA_M4_BIN} ]; then
+               ${DEPLOY_DIR_IMAGE}/fiptool create \
+                   --scp-fw ${DEPLOY_DIR_IMAGE}/${TFA_M4_BIN} \
+                   --soc-fw ${DEPLOY_DIR_IMAGE}/bl31-${TFA_PLATFORM}.bin \
+                   --tos-fw ${DEPLOY_DIR_IMAGE}/tee-header_v2-optee.bin \
+                   --tos-fw-extra1 ${DEPLOY_DIR_IMAGE}/tee-pager_v2-optee.bin \
+                   --nt-fw ${DEPLOY_DIR_IMAGE}/u-boot.bin-spinand \
+                   ${DEPLOY_DIR_IMAGE}/fip_with_optee-${IMAGE_BASENAME}-${MACHINE}.bin-spinand
+            else
+                bberror "Could not found ${DEPLOY_DIR_IMAGE}/${TFA_M4_BIN}"
+            fi
+        fi
         (cd ${DEPLOY_DIR_IMAGE}; ln -sf fip_with_optee-${IMAGE_BASENAME}-${MACHINE}.bin-spinand fip.bin-spinand)
     else
-        ${DEPLOY_DIR_IMAGE}/fiptool create \
-            --soc-fw ${DEPLOY_DIR_IMAGE}/bl31-${TFA_PLATFORM}.bin \
-            --nt-fw ${DEPLOY_DIR_IMAGE}/u-boot.bin-spinand \
-            ${DEPLOY_DIR_IMAGE}/fip_without_optee-${IMAGE_BASENAME}-${MACHINE}.bin-spinand
+        if [ "${TFA_LOAD_M4}" = "no" ]; then
+            ${DEPLOY_DIR_IMAGE}/fiptool create \
+                --soc-fw ${DEPLOY_DIR_IMAGE}/bl31-${TFA_PLATFORM}.bin \
+                --nt-fw ${DEPLOY_DIR_IMAGE}/u-boot.bin-spinand \
+                ${DEPLOY_DIR_IMAGE}/fip_without_optee-${IMAGE_BASENAME}-${MACHINE}.bin-spinand
+        else
+            if [ -f ${DEPLOY_DIR_IMAGE}/${TFA_M4_BIN} ]; then
+                ${DEPLOY_DIR_IMAGE}/fiptool create \
+                   --scp-fw ${DEPLOY_DIR_IMAGE}/${TFA_M4_BIN} \
+                   --soc-fw ${DEPLOY_DIR_IMAGE}/bl31-${TFA_PLATFORM}.bin \
+                   --nt-fw ${DEPLOY_DIR_IMAGE}/u-boot.bin-spinand \
+                   ${DEPLOY_DIR_IMAGE}/fip_without_optee-${IMAGE_BASENAME}-${MACHINE}.bin-spinand
+            else
+                bberror "Could not found ${DEPLOY_DIR_IMAGE}/${TFA_M4_BIN}"
+            fi
+        fi
         (cd ${DEPLOY_DIR_IMAGE}; ln -sf fip_without_optee-${IMAGE_BASENAME}-${MACHINE}.bin-spinand fip.bin-spinand)
     fi
 
@@ -118,18 +148,44 @@ IMAGE_CMD_nand() {
     fi
     # Generate the FIP image  with the bl2.bin and required Device Tree
     if ${@bb.utils.contains('MACHINE_FEATURES', 'optee', 'true', 'false', d)}; then
-        ${DEPLOY_DIR_IMAGE}/fiptool create \
-            --soc-fw ${DEPLOY_DIR_IMAGE}/bl31-${TFA_PLATFORM}.bin \
-            --tos-fw ${DEPLOY_DIR_IMAGE}/tee-header_v2-optee.bin \
-            --tos-fw-extra1 ${DEPLOY_DIR_IMAGE}/tee-pager_v2-optee.bin \
-            --nt-fw ${DEPLOY_DIR_IMAGE}/u-boot.bin-nand \
+	if [ "${TFA_LOAD_M4}" = "no" ]; then
+            ${DEPLOY_DIR_IMAGE}/fiptool create \
+                --soc-fw ${DEPLOY_DIR_IMAGE}/bl31-${TFA_PLATFORM}.bin \
+                --tos-fw ${DEPLOY_DIR_IMAGE}/tee-header_v2-optee.bin \
+                --tos-fw-extra1 ${DEPLOY_DIR_IMAGE}/tee-pager_v2-optee.bin \
+                --nt-fw ${DEPLOY_DIR_IMAGE}/u-boot.bin-nand \
             ${DEPLOY_DIR_IMAGE}/fip_with_optee-${IMAGE_BASENAME}-${MACHINE}.bin-nand
+	else
+            if [ -f ${DEPLOY_DIR_IMAGE}/${TFA_M4_BIN} ]; then
+                ${DEPLOY_DIR_IMAGE}/fiptool create \
+                    --scp-fw ${DEPLOY_DIR_IMAGE}/${TFA_M4_BIN} \
+                    --soc-fw ${DEPLOY_DIR_IMAGE}/bl31-${TFA_PLATFORM}.bin \
+                    --tos-fw ${DEPLOY_DIR_IMAGE}/tee-header_v2-optee.bin \
+                    --tos-fw-extra1 ${DEPLOY_DIR_IMAGE}/tee-pager_v2-optee.bin \
+                    --nt-fw ${DEPLOY_DIR_IMAGE}/u-boot.bin-nand \
+                ${DEPLOY_DIR_IMAGE}/fip_with_optee-${IMAGE_BASENAME}-${MACHINE}.bin-nand
+            else
+                bberror "Could not found ${DEPLOY_DIR_IMAGE}/${TFA_M4_BIN}"
+            fi
+	fi
         (cd ${DEPLOY_DIR_IMAGE}; ln -sf fip_with_optee-${IMAGE_BASENAME}-${MACHINE}.bin-nand fip.bin-nand)
     else
-        ${DEPLOY_DIR_IMAGE}/fiptool create \
-            --soc-fw ${DEPLOY_DIR_IMAGE}/bl31-${TFA_PLATFORM}.bin \
-            --nt-fw ${DEPLOY_DIR_IMAGE}/u-boot.bin-nand \
-            ${DEPLOY_DIR_IMAGE}/fip_without_optee-${IMAGE_BASENAME}-${MACHINE}.bin-nand
+        if [ "${TFA_LOAD_M4}" = "no" ]; then
+            ${DEPLOY_DIR_IMAGE}/fiptool create \
+                --soc-fw ${DEPLOY_DIR_IMAGE}/bl31-${TFA_PLATFORM}.bin \
+                --nt-fw ${DEPLOY_DIR_IMAGE}/u-boot.bin-nand \
+                ${DEPLOY_DIR_IMAGE}/fip_without_optee-${IMAGE_BASENAME}-${MACHINE}.bin-nand
+        else
+            if [ -f ${DEPLOY_DIR_IMAGE}/${TFA_M4_BIN} ]; then
+                ${DEPLOY_DIR_IMAGE}/fiptool create \
+                    --scp-fw ${DEPLOY_DIR_IMAGE}/${TFA_M4_BIN} \
+                    --soc-fw ${DEPLOY_DIR_IMAGE}/bl31-${TFA_PLATFORM}.bin \
+                    --nt-fw ${DEPLOY_DIR_IMAGE}/u-boot.bin-nand \
+                    ${DEPLOY_DIR_IMAGE}/fip_without_optee-${IMAGE_BASENAME}-${MACHINE}.bin-nand
+            else
+                bberror "Could not found ${DEPLOY_DIR_IMAGE}/${TFA_M4_BIN}"
+            fi
+        fi
         (cd ${DEPLOY_DIR_IMAGE}; ln -sf fip_without_optee-${IMAGE_BASENAME}-${MACHINE}.bin-nand fip.bin-nand)
     fi
 
@@ -197,19 +253,45 @@ IMAGE_CMD_sdcard() {
 
     # Generate the FIP image  with the bl2.bin and required Device Tree
     if ${@bb.utils.contains('MACHINE_FEATURES', 'optee', 'true', 'false', d)}; then
-        ${DEPLOY_DIR_IMAGE}/fiptool create \
-            --soc-fw ${DEPLOY_DIR_IMAGE}/bl31-${TFA_PLATFORM}.bin \
-            --tos-fw ${DEPLOY_DIR_IMAGE}/tee-header_v2-optee.bin \
-            --tos-fw-extra1 ${DEPLOY_DIR_IMAGE}/tee-pager_v2-optee.bin \
-            --nt-fw ${DEPLOY_DIR_IMAGE}/u-boot.bin-sdcard \
-            ${DEPLOY_DIR_IMAGE}/fip_with_optee-${IMAGE_BASENAME}-${MACHINE}.bin-sdcard
+        if [ "${TFA_LOAD_M4}" = "no" ]; then
+            ${DEPLOY_DIR_IMAGE}/fiptool create \
+                --soc-fw ${DEPLOY_DIR_IMAGE}/bl31-${TFA_PLATFORM}.bin \
+                --tos-fw ${DEPLOY_DIR_IMAGE}/tee-header_v2-optee.bin \
+                --tos-fw-extra1 ${DEPLOY_DIR_IMAGE}/tee-pager_v2-optee.bin \
+                --nt-fw ${DEPLOY_DIR_IMAGE}/u-boot.bin-sdcard \
+                ${DEPLOY_DIR_IMAGE}/fip_with_optee-${IMAGE_BASENAME}-${MACHINE}.bin-sdcard
+        else
+           if [ -f ${DEPLOY_DIR_IMAGE}/${TFA_M4_BIN} ]; then
+               ${DEPLOY_DIR_IMAGE}/fiptool create \
+                    --scp-fw ${DEPLOY_DIR_IMAGE}/${TFA_M4_BIN} \
+                    --soc-fw ${DEPLOY_DIR_IMAGE}/bl31-${TFA_PLATFORM}.bin \
+                    --tos-fw ${DEPLOY_DIR_IMAGE}/tee-header_v2-optee.bin \
+                    --tos-fw-extra1 ${DEPLOY_DIR_IMAGE}/tee-pager_v2-optee.bin \
+                    --nt-fw ${DEPLOY_DIR_IMAGE}/u-boot.bin-sdcard \
+                    ${DEPLOY_DIR_IMAGE}/fip_with_optee-${IMAGE_BASENAME}-${MACHINE}.bin-sdcard
+            else
+                bberror "Could not found ${DEPLOY_DIR_IMAGE}/${TFA_M4_BIN}"
+            fi
+        fi
         (cd ${DEPLOY_DIR_IMAGE}; ln -sf fip_with_optee-${IMAGE_BASENAME}-${MACHINE}.bin-sdcard fip.bin-sdcard)
     else
-        ${DEPLOY_DIR_IMAGE}/fiptool create \
-            --soc-fw ${DEPLOY_DIR_IMAGE}/bl31-${TFA_PLATFORM}.bin \
-            --nt-fw ${DEPLOY_DIR_IMAGE}/u-boot.bin-sdcard \
-            ${DEPLOY_DIR_IMAGE}/fip_without_optee-${IMAGE_BASENAME}-${MACHINE}.bin-sdcard
-        (cd ${DEPLOY_DIR_IMAGE}; ln -sf fip_without_optee-${IMAGE_BASENAME}-${MACHINE}.bin-sdcard fip.bin-sdcard)
+        if [ "${TFA_LOAD_M4}" = "no" ]; then
+            ${DEPLOY_DIR_IMAGE}/fiptool create \
+                --soc-fw ${DEPLOY_DIR_IMAGE}/bl31-${TFA_PLATFORM}.bin \
+                --nt-fw ${DEPLOY_DIR_IMAGE}/u-boot.bin-sdcard \
+                ${DEPLOY_DIR_IMAGE}/fip_without_optee-${IMAGE_BASENAME}-${MACHINE}.bin-sdcard
+        else
+            if [ -f ${DEPLOY_DIR_IMAGE}/${TFA_M4_BIN} ]; then
+                ${DEPLOY_DIR_IMAGE}/fiptool create \
+                    --scp-fw ${DEPLOY_DIR_IMAGE}/${TFA_M4_BIN} \
+                    --soc-fw ${DEPLOY_DIR_IMAGE}/bl31-${TFA_PLATFORM}.bin \
+                   --nt-fw ${DEPLOY_DIR_IMAGE}/u-boot.bin-sdcard \
+                   ${DEPLOY_DIR_IMAGE}/fip_without_optee-${IMAGE_BASENAME}-${MACHINE}.bin-sdcard
+            else
+                bberror "Could not found ${DEPLOY_DIR_IMAGE}/${TFA_M4_BIN}"
+            fi
+        fi
+        (cd ${DEPLOY_DIR_IMAGE}; ln -sf fip_without_optee-${IMAGE_BASENAME}-${MACHINE}.bin-sdcard fip.bin-sdcaard)
     fi
 
     if [ -f ${IMGDEPLOYDIR}/${IMAGE_NAME}.rootfs.ext4 ]; then
