@@ -47,7 +47,7 @@ do_compile() {
         TFA_OPT="${TFA_OPT} NEED_SCP_BL2=yes"
     fi
     if ${@bb.utils.contains('MACHINE_FEATURES', 'optee', 'true', 'false', d)}; then
-        TFA_OPT="${TFA_OPT} NEED_BL33=yes"
+        TFA_OPT="${TFA_OPT} NEED_BL32=yes"
 	if echo ${TFA_DTB} | grep -q "256"; then
             oe_runmake PLAT=${PLATFORM} ${TFA_OPT} -C ${S} realclean
             oe_runmake PLAT=${PLATFORM} ${TFA_OPT} -C ${S} all
