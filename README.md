@@ -2,6 +2,7 @@
 ```
 numaker-som-ma35d16a81
 numaker-iot-ma35d16f70
+numaker-iot-ma35d16f90
 ```
 # Using repo to download source
 ```
