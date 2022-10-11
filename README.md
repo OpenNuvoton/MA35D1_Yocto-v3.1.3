@@ -39,7 +39,4 @@ $ DISTRO=nvt-ma35d1-directfb MACHINE=numaker-som-ma35d16a81 source  sources/init
   in source/meta-ma35d1/conf/machine/*.conf )
 $ bitbake core-image-minimal
 
-NOTE:
-if <machine> is set to ma35d1-tc-xxx, the repo needs to be changed to
-$ repo init -u https://github.com/OpenNuvoton/MA35D1_Yocto-v3.1.3.git -m meta-ma35d1/base/ma35d1-tc.xml
 ```

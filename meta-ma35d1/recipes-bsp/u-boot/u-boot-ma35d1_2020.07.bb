@@ -36,6 +36,11 @@ do_compile_append() {
                 if [ $j -eq $i ]
                 then
                     if [ -n "${UBOOT_INITIAL_ENV}" ]; then
+			if [ "$(grep "CONFIG_SYS_REDUNDAND_ENVIRONMENT=y" ${B}/${config}/.config)" ]; then
+				ENVOPT="-r -s 0x10000 -o"
+			else
+				ENVOPT="-s 0x10000 -o"
+			fi
 			if echo ${TFA_DTB} | grep -q "512"; then
                             sed -i "s/kernelmem=256M/kernelmem=512M/1" ${B}/${config}/u-boot-initial-env-${type}
                             if ${@bb.utils.contains('MACHINE_FEATURES', 'optee', 'true', 'false', d)}; then
@@ -69,7 +74,11 @@ do_compile_append() {
 				sed -i "s/boot_targets=/boot_targets=mtd0 /1" ${B}/${config}/u-boot-initial-env-${type}
 			fi
 
-                        ${B}/${config}/tools/mkenvimage -s 0x10000 -o ${B}/${config}/u-boot-initial-env.bin-${type} ${B}/${config}/u-boot-initial-env-${type}
+			if [ "${type}" = "nand" ]; then
+				sed -i "s/boot_targets=/boot_targets=nand0 /1" ${B}/${config}/u-boot-initial-env-${type}
+			fi
+
+                        ${B}/${config}/tools/mkenvimage ${ENVOPT} ${B}/${config}/u-boot-initial-env.bin-${type} ${B}/${config}/u-boot-initial-env-${type}
                     fi
                 fi
             done

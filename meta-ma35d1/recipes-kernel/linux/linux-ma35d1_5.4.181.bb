@@ -62,7 +62,7 @@ do_deploy_append() {
 
 do_install_append() {
     if [ -e ${WORKDIR}/88x2bu.ko ]; then
-        install -d ${D}/${base_libdir}/modules/${KV}
+        install -d ${D}/${base_libdir}/modules/${PV}
         install -m 0644 ${WORKDIR}/88x2bu.ko ${D}/${base_libdir}/modules/${PV}/88x2bu.ko
     fi
 }
