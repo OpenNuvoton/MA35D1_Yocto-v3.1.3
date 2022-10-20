@@ -21,7 +21,7 @@ Solve it in the following way:
 ```
 
 # Build yocto
-DISTRO=nvt-ma35d1-directfb MACHINE=ma35d1-evb source  sources/init-build-env build
+DISTRO=nvt-ma35d1-directfb MACHINE=numaker-som-ma35d16a81 source  sources/init-build-env build
 
 ###### Usage:
 	MACHINE=<machine> DISTRO=<distro> source sources/init-build-env <build-dir>
