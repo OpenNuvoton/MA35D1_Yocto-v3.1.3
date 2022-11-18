@@ -49,11 +49,11 @@ export PLATFORM_FLAVOR = "${OPTEE_PLATFORM_FLAVOR}"
 
 do_compile(){
 	if echo ${TFA_DTB} | grep -q "128"; then
-            oe_runmake CFG_TZDRAM_START=0x87900000 CFG_SHMEM_START=0x87800000 -C ${S} O=${B}
+            oe_runmake CFG_TZDRAM_START=0x87800000 CFG_SHMEM_START=0x87F00000 -C ${S} O=${B}
 	elif echo ${TFA_DTB} | grep -q "512"; then
-            oe_runmake CFG_TZDRAM_START=0x9F900000 CFG_SHMEM_START=0x9F800000 -C ${S} O=${B}
+            oe_runmake CFG_TZDRAM_START=0x9F800000 CFG_SHMEM_START=0x9FF00000 -C ${S} O=${B}
 	elif echo ${TFA_DTB} | grep -q "1g"; then
-            oe_runmake CFG_TZDRAM_START=0xAF900000 CFG_SHMEM_START=0xAF800000 -C ${S} O=${B}
+            oe_runmake CFG_TZDRAM_START=0xAF800000 CFG_SHMEM_START=0xAFF00000 -C ${S} O=${B}
 	else
             oe_runmake -C ${S} O=${B}
 	fi
