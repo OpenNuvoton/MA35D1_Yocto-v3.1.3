@@ -75,7 +75,7 @@ do_compile() {
                 MA35D1_DRAM_S_BASE=0x9F800000 \
                 MA35D1_BL32_BASE=0x9F800000 -C ${S} realclean
             oe_runmake PLAT=${PLATFORM} ${TFA_OPT} \
-                MA35D1_DRAM_SIZE=0x07800000 \
+                MA35D1_DRAM_SIZE=0x1F800000 \
                 MA35D1_DDR_MAX_SIZE=0x20000000 \
                 MA35D1_DRAM_S_BASE=0x9F800000 \
                 MA35D1_BL32_BASE=0x9F800000 -C ${S} all
