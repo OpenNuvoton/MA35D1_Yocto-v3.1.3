@@ -42,7 +42,10 @@ export CROSS_COMPILE="${TARGET_PREFIX}"
 export ARCH="arm64"
 do_compile() {
 
-    TFA_OPT=" NEED_BL31=yes NEED_BL33=yes"
+    TFA_OPT=" NEED_BL31=yes NEED_BL33=yes MA35D1_PMIC=${TFA_PMIC}"
+    if [ "${SECURE_BOOT}" = "yes" ]; then
+        TFA_OPT="${TFA_OPT} FIP_DE_AES=1"
+    fi
     if [ "${TFA_LOAD_M4}" = "yes" ]; then
         TFA_OPT="${TFA_OPT} NEED_SCP_BL2=yes"
     fi
