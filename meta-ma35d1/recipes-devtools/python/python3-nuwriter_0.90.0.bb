@@ -19,6 +19,7 @@ SRC_URI += " file://header-nand.json \
              file://pack-nand.json \
              file://pack-sdcard.json \
              file://pack-spinand.json \
+             file://enc_fip.json \
            "
 
 DEPENDS += " \
@@ -52,6 +53,7 @@ do_install(){
     cp ${WORKDIR}/pack-nand.json  ${D}${datadir}/nuwriter/
     cp ${WORKDIR}/pack-spinand.json  ${D}${datadir}/nuwriter/
     cp ${WORKDIR}/pack-sdcard.json  ${D}${datadir}/nuwriter/
+    cp ${WORKDIR}/enc_fip.json  ${D}${datadir}/nuwriter/
    
     cp ${S}/ddrimg/* ${D}${datadir}/nuwriter/ddrimg/ 
     cp ${S}/xusb.bin ${D}${datadir}/nuwriter/
