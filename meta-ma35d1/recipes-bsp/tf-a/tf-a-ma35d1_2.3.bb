@@ -97,7 +97,7 @@ do_compile() {
                 MA35D1_DRAM_SIZE=0x3F800000 \
                 MA35D1_DDR_MAX_SIZE=0x40000000 \
                 MA35D1_DRAM_S_BASE=0xBF800000 \
-                MA35D1_BL32_BASE=0xFB800000 -C ${S} all
+                MA35D1_BL32_BASE=0xBF800000 -C ${S} all
             oe_runmake PLAT=${PLATFORM} ${TFA_OPT} \
                 MA35D1_DRAM_SIZE=0x3F800000 \
                 MA35D1_DDR_MAX_SIZE=0x40000000 \
