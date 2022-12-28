@@ -53,7 +53,7 @@ do_compile(){
 	elif echo ${TFA_DTB} | grep -q "512"; then
             oe_runmake CFG_TZDRAM_START=0x9F800000 CFG_SHMEM_START=0x9FF00000 -C ${S} O=${B}
 	elif echo ${TFA_DTB} | grep -q "1g"; then
-            oe_runmake CFG_TZDRAM_START=0xAF800000 CFG_SHMEM_START=0xAFF00000 -C ${S} O=${B}
+            oe_runmake CFG_TZDRAM_START=0xBF800000 CFG_SHMEM_START=0xBFF00000 -C ${S} O=${B}
 	else
             oe_runmake -C ${S} O=${B}
 	fi

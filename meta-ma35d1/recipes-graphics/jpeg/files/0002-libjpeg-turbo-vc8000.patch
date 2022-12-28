@@ -1,6 +1,6 @@
 diff -Naur libjpeg-turbo-2.1.3/CMakeLists.txt libjpeg-turbo-2.1.3_new/CMakeLists.txt
 --- libjpeg-turbo-2.1.3/CMakeLists.txt	2022-02-26 02:53:05.000000000 +0800
-+++ libjpeg-turbo-2.1.3_new/CMakeLists.txt	2022-06-02 15:26:16.487138533 +0800
++++ libjpeg-turbo-2.1.3_new/CMakeLists.txt	2022-12-28 13:33:44.891881104 +0800
 @@ -582,13 +582,28 @@
    add_subdirectory(java)
  endif()
@@ -63,7 +63,7 @@ diff -Naur libjpeg-turbo-2.1.3/CMakeLists.txt libjpeg-turbo-2.1.3_new/CMakeLists
  include(cmakescripts/BuildPackages.cmake)
 diff -Naur libjpeg-turbo-2.1.3/jdapimin.c libjpeg-turbo-2.1.3_new/jdapimin.c
 --- libjpeg-turbo-2.1.3/jdapimin.c	2022-02-26 02:53:05.000000000 +0800
-+++ libjpeg-turbo-2.1.3_new/jdapimin.c	2022-06-02 15:26:16.487138533 +0800
++++ libjpeg-turbo-2.1.3_new/jdapimin.c	2022-12-28 13:33:44.891881104 +0800
 @@ -31,9 +31,86 @@
   * The error manager must already be set up (in case memory manager fails).
   */
@@ -289,7 +289,7 @@ diff -Naur libjpeg-turbo-2.1.3/jdapimin.c libjpeg-turbo-2.1.3_new/jdapimin.c
      /* Terminate final pass of non-buffered mode */
 diff -Naur libjpeg-turbo-2.1.3/jdapistd.c libjpeg-turbo-2.1.3_new/jdapistd.c
 --- libjpeg-turbo-2.1.3/jdapistd.c	2022-02-26 02:53:05.000000000 +0800
-+++ libjpeg-turbo-2.1.3_new/jdapistd.c	2022-06-02 15:26:16.487138533 +0800
++++ libjpeg-turbo-2.1.3_new/jdapistd.c	2022-12-28 13:33:44.891881104 +0800
 @@ -41,9 +41,296 @@
   * a suspending data source is used.
   */
@@ -576,10 +576,10 @@ diff -Naur libjpeg-turbo-2.1.3/jdapistd.c libjpeg-turbo-2.1.3_new/jdapistd.c
 +
 +  if(cinfo->master->bHWJpegCodecOpened) {
 +	ret = vc8000_start_decompress(cinfo);
-+    if(ret != 0)
-+    {
-+		printf("fallback to software decompress reason %d \n", ret);
-+	}
++//    if(ret != 0)
++//    {
++//		printf("JPEG fallback to software decompress reason %d \n", ret);
++//    }
 +  }
 +
 +#endif
@@ -1052,7 +1052,7 @@ diff -Naur libjpeg-turbo-2.1.3/jdapistd.c libjpeg-turbo-2.1.3_new/jdapistd.c
      cinfo->progress->pass_counter = (long)cinfo->output_scanline;
 diff -Naur libjpeg-turbo-2.1.3/jdatadst.c libjpeg-turbo-2.1.3_new/jdatadst.c
 --- libjpeg-turbo-2.1.3/jdatadst.c	2022-02-26 02:53:05.000000000 +0800
-+++ libjpeg-turbo-2.1.3_new/jdatadst.c	2022-06-02 15:26:16.487138533 +0800
++++ libjpeg-turbo-2.1.3_new/jdatadst.c	2022-12-28 13:33:44.891881104 +0800
 @@ -20,6 +20,7 @@
  
  /* this is not a core library module, so it doesn't define JPEG_INTERNALS */
@@ -1120,7 +1120,7 @@ diff -Naur libjpeg-turbo-2.1.3/jdatadst.c libjpeg-turbo-2.1.3_new/jdatadst.c
 +#endif
 diff -Naur libjpeg-turbo-2.1.3/jdatasrc.c libjpeg-turbo-2.1.3_new/jdatasrc.c
 --- libjpeg-turbo-2.1.3/jdatasrc.c	2022-02-26 02:53:05.000000000 +0800
-+++ libjpeg-turbo-2.1.3_new/jdatasrc.c	2022-06-02 15:26:16.487138533 +0800
++++ libjpeg-turbo-2.1.3_new/jdatasrc.c	2022-12-28 13:33:44.891881104 +0800
 @@ -20,6 +20,7 @@
  
  /* this is not a core library module, so it doesn't define JPEG_INTERNALS */
@@ -1250,7 +1250,7 @@ diff -Naur libjpeg-turbo-2.1.3/jdatasrc.c libjpeg-turbo-2.1.3_new/jdatasrc.c
  #endif
 diff -Naur libjpeg-turbo-2.1.3/jdatasrc-tj.c libjpeg-turbo-2.1.3_new/jdatasrc-tj.c
 --- libjpeg-turbo-2.1.3/jdatasrc-tj.c	2022-02-26 02:53:05.000000000 +0800
-+++ libjpeg-turbo-2.1.3_new/jdatasrc-tj.c	2022-06-02 15:26:16.487138533 +0800
++++ libjpeg-turbo-2.1.3_new/jdatasrc-tj.c	2022-12-28 13:33:44.891881104 +0800
 @@ -20,6 +20,7 @@
  
  /* this is not a core library module, so it doesn't define JPEG_INTERNALS */
@@ -1292,7 +1292,7 @@ diff -Naur libjpeg-turbo-2.1.3/jdatasrc-tj.c libjpeg-turbo-2.1.3_new/jdatasrc-tj
  }
 diff -Naur libjpeg-turbo-2.1.3/jpegint.h libjpeg-turbo-2.1.3_new/jpegint.h
 --- libjpeg-turbo-2.1.3/jpegint.h	2022-02-26 02:53:05.000000000 +0800
-+++ libjpeg-turbo-2.1.3_new/jpegint.h	2022-06-02 15:26:16.487138533 +0800
++++ libjpeg-turbo-2.1.3_new/jpegint.h	2022-12-28 13:33:44.891881104 +0800
 @@ -16,6 +16,9 @@
   * applications using the library shouldn't need to include this file.
   */
@@ -1363,7 +1363,7 @@ diff -Naur libjpeg-turbo-2.1.3/jpegint.h libjpeg-turbo-2.1.3_new/jpegint.h
  /* Input control module */
 diff -Naur libjpeg-turbo-2.1.3/jpeglib_ext.h libjpeg-turbo-2.1.3_new/jpeglib_ext.h
 --- libjpeg-turbo-2.1.3/jpeglib_ext.h	1970-01-01 08:00:00.000000000 +0800
-+++ libjpeg-turbo-2.1.3_new/jpeglib_ext.h	2022-06-02 15:26:16.487138533 +0800
++++ libjpeg-turbo-2.1.3_new/jpeglib_ext.h	2022-12-28 13:33:44.891881104 +0800
 @@ -0,0 +1,33 @@
 +#ifndef JPEGLIB_EXT_H
 +#define JPEGLIB_EXT_H
@@ -1400,7 +1400,7 @@ diff -Naur libjpeg-turbo-2.1.3/jpeglib_ext.h libjpeg-turbo-2.1.3_new/jpeglib_ext
 +#endif
 diff -Naur libjpeg-turbo-2.1.3/msm-v4l2-controls.h libjpeg-turbo-2.1.3_new/msm-v4l2-controls.h
 --- libjpeg-turbo-2.1.3/msm-v4l2-controls.h	1970-01-01 08:00:00.000000000 +0800
-+++ libjpeg-turbo-2.1.3_new/msm-v4l2-controls.h	2022-06-02 15:26:16.487138533 +0800
++++ libjpeg-turbo-2.1.3_new/msm-v4l2-controls.h	2022-12-28 13:33:44.891881104 +0800
 @@ -0,0 +1,423 @@
 +#ifndef __MSM_V4L2_CONTROLS_H__
 +#define __MSM_V4L2_CONTROLS_H__
@@ -1827,7 +1827,7 @@ diff -Naur libjpeg-turbo-2.1.3/msm-v4l2-controls.h libjpeg-turbo-2.1.3_new/msm-v
 +#endif/* __MSM_V4L2_CONTROLS_H__ */
 diff -Naur libjpeg-turbo-2.1.3/vc8000_v4l2.c libjpeg-turbo-2.1.3_new/vc8000_v4l2.c
 --- libjpeg-turbo-2.1.3/vc8000_v4l2.c	1970-01-01 08:00:00.000000000 +0800
-+++ libjpeg-turbo-2.1.3_new/vc8000_v4l2.c	2022-06-02 15:26:16.487138533 +0800
++++ libjpeg-turbo-2.1.3_new/vc8000_v4l2.c	2022-12-28 13:33:44.891881104 +0800
 @@ -0,0 +1,986 @@
 +/**
 + * @file vc8000_v4l2.c: vc8000 for v4l2 driver
@@ -2817,7 +2817,7 @@ diff -Naur libjpeg-turbo-2.1.3/vc8000_v4l2.c libjpeg-turbo-2.1.3_new/vc8000_v4l2
 +
 diff -Naur libjpeg-turbo-2.1.3/vc8000_v4l2.h libjpeg-turbo-2.1.3_new/vc8000_v4l2.h
 --- libjpeg-turbo-2.1.3/vc8000_v4l2.h	1970-01-01 08:00:00.000000000 +0800
-+++ libjpeg-turbo-2.1.3_new/vc8000_v4l2.h	2022-06-02 15:26:16.487138533 +0800
++++ libjpeg-turbo-2.1.3_new/vc8000_v4l2.h	2022-12-28 13:33:44.891881104 +0800
 @@ -0,0 +1,238 @@
 +/**
 + * @file vc8000_v4l2.h vc8000 v4l2 driver
