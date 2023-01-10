@@ -416,7 +416,7 @@ IMAGE_CMD_sdcard() {
 				bberror "Could not found ${DEPLOY_DIR_IMAGE}/${TFA_M4_BIN}"
 			fi
 		fi
-		(cd ${DEPLOY_DIR_IMAGE}; ln -sf ${ENC}fip_without_optee-${IMAGE_BASENAME}-${MACHINE}.bin-sdcard fip.bin-sdcaard)
+		(cd ${DEPLOY_DIR_IMAGE}; ln -sf ${ENC}fip_without_optee-${IMAGE_BASENAME}-${MACHINE}.bin-sdcard fip.bin-sdcard)
 	fi
 
 	if [ -f ${IMGDEPLOYDIR}/${IMAGE_NAME}.rootfs.ext4 ]; then
