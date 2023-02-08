@@ -60,6 +60,12 @@ do_compile_append() {
                             if ${@bb.utils.contains('MACHINE_FEATURES', 'optee', 'true', 'false', d)}; then
                                 sed -i "s/kernelmem=1024M/kernelmem=1016M/1" ${B}/${config}/u-boot-initial-env-${type}
                             fi
+			elif echo ${TFA_DTB} | grep -q "custom"; then
+                            KMEM=$(expr $(printf "%d\n" ${TFA_DDR_SIZE}) \/ 1024 \/ 1024 )
+                            if ${@bb.utils.contains('MACHINE_FEATURES', 'optee', 'true', 'false', d)}; then
+                                KMEM=$(expr ${KMEM} - 8)
+                            fi
+                            sed -i "s/kernelmem=256M/kernelmem=${KMEM}M/1" ${B}/${config}/u-boot-initial-env-${type}
                         fi
 
                         if [ "${type}" = "sdcard" ]; then

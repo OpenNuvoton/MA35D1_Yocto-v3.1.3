@@ -54,6 +54,10 @@ do_compile(){
             oe_runmake CFG_TZDRAM_START=0x9F800000 CFG_SHMEM_START=0x9FF00000 -C ${S} O=${B}
 	elif echo ${TFA_DTB} | grep -q "1g"; then
             oe_runmake CFG_TZDRAM_START=0xBF800000 CFG_SHMEM_START=0xBFF00000 -C ${S} O=${B}
+	elif echo ${TFA_DTB} | grep -q "custom"; then
+            SBASE0=$(expr $(printf "%d\n" ${TFA_DDR_SIZE}) \+ $(printf "%d\n" 0x7F800000))
+            SBASE1=$(expr $(printf "%d\n" ${TFA_DDR_SIZE}) \+ $(printf "%d\n" 0x7FF00000))
+            oe_runmake CFG_TZDRAM_START=${SBASE0} CFG_SHMEM_START=${SBASE1} -C ${S} O=${B}
 	else
             oe_runmake -C ${S} O=${B}
 	fi

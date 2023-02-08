@@ -6,6 +6,7 @@ LICENSE = "BSD-3-Clause"
 LIC_FILES_CHKSUM = "file://license.rst;md5=1dd070c98a281d18d9eefd938729b031"
 
 SRC_URI = "git://github.com/OpenNuvoton/MA35D1_arm-trusted-firmware-v2.3.git;branch=master;protocol=https"
+SRC_URI += "file://custom_ddr.h"
 SRCREV = "${TFA_SRCREV}"
 
 TF_VERSION = "2.3"
@@ -103,11 +104,35 @@ do_compile() {
                 MA35D1_DDR_MAX_SIZE=0x40000000 \
                 MA35D1_DRAM_S_BASE=0xBF800000 \
                 MA35D1_BL32_BASE=0xBF800000-C ${S} fiptool
+	elif echo ${TFA_DTB} | grep -q "custom"; then
+            DSIZE=$(expr $(printf "%d\n" ${TFA_DDR_SIZE}) \- $(printf "%d\n" 0x800000))
+            SBASE=$(expr $(printf "%d\n" ${TFA_DDR_SIZE}) \+ $(printf "%d\n" 0x7F800000))
+            oe_runmake PLAT=${PLATFORM} ${TFA_OPT} \
+                MA35D1_DRAM_SIZE=${DSIZE} \
+                MA35D1_DDR_MAX_SIZE=${TFA_DDR_SIZE} \
+                MA35D1_DRAM_S_BASE=${SBASE} \
+                MA35D1_BL32_BASE=${SBASE} -C ${S} realclean
+            oe_runmake PLAT=${PLATFORM} ${TFA_OPT} \
+                MA35D1_DRAM_SIZE=${DSIZE} \
+                MA35D1_DDR_MAX_SIZE=${TFA_DDR_SIZE} \
+                MA35D1_DRAM_S_BASE=${SBASE} \
+                MA35D1_BL32_BASE=${SBASE} -C ${S} all
+            oe_runmake PLAT=${PLATFORM} ${TFA_OPT} \
+                MA35D1_DRAM_SIZE=${DSIZE} \
+                MA35D1_DDR_MAX_SIZE=${TFA_DDR_SIZE} \
+                MA35D1_DRAM_S_BASE=${SBASE} \
+                MA35D1_BL32_BASE=${SBASE} -C ${S} fiptool
 	fi
     else
        oe_runmake PLAT=${PLATFORM} ${TFA_OPT} -C ${S} realclean
        oe_runmake PLAT=${PLATFORM} ${TFA_OPT} -C ${S} all
        oe_runmake PLAT=${PLATFORM} ${TFA_OPT} -C ${S} fiptool
+    fi
+}
+
+do_compile_prepend() {
+    if echo ${TFA_DTB} | grep -q "custom"; then
+        cp ${WORKDIR}/custom_ddr.h ${S}/plat/nuvoton/ma35d1/include/custom_ddr.h
     fi
 }
 
