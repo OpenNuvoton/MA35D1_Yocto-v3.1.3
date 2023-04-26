@@ -6,7 +6,7 @@ LICENSE = "BSD-3-Clause"
 LIC_FILES_CHKSUM = "file://license.rst;md5=1dd070c98a281d18d9eefd938729b031"
 
 SRC_URI = "git://github.com/OpenNuvoton/MA35D1_arm-trusted-firmware-v2.3.git;branch=master;protocol=https"
-SRC_URI += "file://custom_ddr.h"
+SRC_URI += "file://${TFA_DDR_HEADER}"
 SRCREV = "${TFA_SRCREV}"
 
 TF_VERSION = "2.3"
@@ -132,7 +132,7 @@ do_compile() {
 
 do_compile_prepend() {
     if echo ${TFA_DTB} | grep -q "custom"; then
-        cp ${WORKDIR}/custom_ddr.h ${S}/plat/nuvoton/ma35d1/include/custom_ddr.h
+        cp ${WORKDIR}/${TFA_DDR_HEADER} ${S}/plat/nuvoton/ma35d1/include/custom_ddr.h
     fi
 }
 
