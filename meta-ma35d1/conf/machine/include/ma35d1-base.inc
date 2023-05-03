@@ -74,6 +74,12 @@ USE_VT = "0"
 # Free size for SD card, kb
 SDCARD_FREE_SIZE ?="0"
 
+# SD auto-resizes to Max on first boot,
+# A specific disk must be selected
+DISK_DRIVE ?= "mmcblk0"
+DISK_NUM ?= "p1"
+
+
 # Use the expected value of the ubifs filesystem's volume name in the kernel
 UBI_VOLNAME ?= "rootfs"
 # The biggest NANDs on current modules are 100MB.
