@@ -1,6 +1,6 @@
-From 7160762b91cfa17ecaf7ea4570bcec3fdb184c4e Mon Sep 17 00:00:00 2001
+From 0c6a48d3d8ccd497ba9f0c79930e5f215e8a5d42 Mon Sep 17 00:00:00 2001
 From: Jacky Huang <ychuang3@nuvoton.com>
-Date: Fri, 25 Mar 2022 10:47:13 +0800
+Date: Mon, 22 May 2023 15:37:06 +0800
 Subject: [PATCH] Add nufbdevsink plugin for MA35D1 VC8000.
 
 ---
@@ -13,10 +13,10 @@ Subject: [PATCH] Add nufbdevsink plugin for MA35D1 VC8000.
  sys/meson.build              |    1 +
  sys/nufbdev/Makefile.am      |   14 +
  sys/nufbdev/Makefile.in      | 1091 ++++++++++++++++++++++++++++++++++
- sys/nufbdev/gstnufbdevsink.c |  720 ++++++++++++++++++++++
- sys/nufbdev/gstnufbdevsink.h |  142 +++++
+ sys/nufbdev/gstnufbdevsink.c |  746 +++++++++++++++++++++++
+ sys/nufbdev/gstnufbdevsink.h |  146 +++++
  sys/nufbdev/meson.build      |   24 +
- 12 files changed, 2017 insertions(+), 6 deletions(-)
+ 12 files changed, 2047 insertions(+), 6 deletions(-)
  create mode 100644 sys/nufbdev/Makefile.am
  create mode 100644 sys/nufbdev/Makefile.in
  create mode 100644 sys/nufbdev/gstnufbdevsink.c
@@ -1294,10 +1294,10 @@ index 0000000..0da09c5
 +.NOEXPORT:
 diff --git a/sys/nufbdev/gstnufbdevsink.c b/sys/nufbdev/gstnufbdevsink.c
 new file mode 100644
-index 0000000..a66b144
+index 0000000..7b67f5f
 --- /dev/null
 +++ b/sys/nufbdev/gstnufbdevsink.c
-@@ -0,0 +1,720 @@
+@@ -0,0 +1,746 @@
 +/* GStreamer
 + * Copyright (C) <1999> Erik Walthinsen <omega@cse.ogi.edu>
 + * This file:
@@ -1393,7 +1393,10 @@ index 0000000..a66b144
 +#define DEFAULT_PROP_WIDTH 1024
 +#define DEFAULT_PROP_HEIGHT 600
 +#define DEFAULT_PROP_ROTATE 0
++#define DEFAULT_PROP_PPFMT 0
 +#define DEFAULT_PROP_FBSEL 0
++#define DEFAULT_PROP_FBWIDTH 1024
++#define DEFAULT_PROP_FBHEIGHT 600
 +#define DEFAULT_PROP_DCBLEND DC_BLEND_MODE_SRC_OVER
 +
 +enum
@@ -1414,7 +1417,10 @@ index 0000000..a66b144
 +  PROP_WIDTH,
 +  PROP_HEIGHT,
 +  PROP_ROTATE,
++  PROP_PPFMT,
 +  PROP_FBSEL,
++  PROP_FBWIDTH,
++  PROP_FBHEIGHT,
 +  PROP_DCBLEND,
 +};
 +
@@ -1704,13 +1710,28 @@ index 0000000..a66b144
 +          G_PARAM_READWRITE | G_PARAM_STATIC_STRINGS | GST_PARAM_CONTROLLABLE));
 +  g_object_class_install_property (gobject_class, PROP_ROTATE,
 +      g_param_spec_int ("rotate", "Rotate",
-+          "Rotation of the VC8000 output image", 0, 3,
++          "Rotation of the VC8000 output image", 0, 5,
 +          DEFAULT_PROP_ROTATE,
++          G_PARAM_READWRITE | G_PARAM_STATIC_STRINGS | GST_PARAM_CONTROLLABLE));
++  g_object_class_install_property (gobject_class, PROP_PPFMT,
++      g_param_spec_int ("format", "ColorFormat",
++          "Select the VC8000 PP output color format", 0, 2,
++          DEFAULT_PROP_PPFMT,
 +          G_PARAM_READWRITE | G_PARAM_STATIC_STRINGS | GST_PARAM_CONTROLLABLE));
 +  g_object_class_install_property (gobject_class, PROP_FBSEL,
 +      g_param_spec_int ("fb", "fbSel",
-+          "Select Frame Buffer fb0/fb1", 0, 3,
++          "Select Frame Buffer fb0/fb1", 0, 1,
 +          DEFAULT_PROP_FBSEL,
++          G_PARAM_READWRITE | G_PARAM_STATIC_STRINGS | GST_PARAM_CONTROLLABLE));
++  g_object_class_install_property (gobject_class, PROP_FBWIDTH,
++      g_param_spec_int ("fbwidth", "FrameBufferWidth",
++          "Select Frame Buffer Width", 64, 1920,
++          DEFAULT_PROP_FBWIDTH,
++          G_PARAM_READWRITE | G_PARAM_STATIC_STRINGS | GST_PARAM_CONTROLLABLE));
++  g_object_class_install_property (gobject_class, PROP_FBHEIGHT,
++      g_param_spec_int ("fbheight", "FrameBufferHeight",
++          "Select Frame Buffer Height", 64, 1080,
++          DEFAULT_PROP_FBHEIGHT,
 +          G_PARAM_READWRITE | G_PARAM_STATIC_STRINGS | GST_PARAM_CONTROLLABLE));
 +  g_object_class_install_property (gobject_class, PROP_DCBLEND,
 +      g_param_spec_int ("dcb", "DCBlend",
@@ -1786,6 +1807,8 @@ index 0000000..a66b144
 +  pp->frame_buf_w = csp->varinfo.xres;
 +  pp->frame_buf_h = csp->varinfo.yres;
 +
++  printf("frame buffer resolution is: %d x %d\n", pp->frame_buf_w, pp->frame_buf_h);
++
 +  if (csp->fd_vc8k != -1) {
 +    if (ioctl(csp->fd_vc8k, VC8KIOC_PP_SET_CONFIG, csp->pp) != 0)
 +      printf("VC8KIOC_PP_SET_CONFIG failed (%s)", strerror(errno));
@@ -1800,13 +1823,7 @@ index 0000000..a66b144
 +  pp->img_out_w = csp->varinfo.xres;
 +  pp->img_out_h = csp->varinfo.yres;
 +  pp->rotation  = PP_ROTATION_NONE;
-+
-+  if (csp->format == GST_VIDEO_FORMAT_ARGB)
-+    pp->img_out_fmt = V4L2_PIX_FMT_ARGB32;
-+  else if (csp->format == GST_VIDEO_FORMAT_RGB16)
-+    pp->img_out_fmt = V4L2_PIX_FMT_RGB565;
-+  else
-+    pp->img_out_fmt = V4L2_PIX_FMT_NV12;
++  pp->img_out_fmt = V4L2_PIX_FMT_ARGB32;
 +
 +  for (i = 0; i < 10; i++) {
 +    sprintf(dev_name, "/dev/video%d", i);
@@ -1842,13 +1859,13 @@ index 0000000..a66b144
 +  space->primaries_mode = DEFAULT_PROP_PRIMARIES_MODE;
 +  space->n_threads = DEFAULT_PROP_N_THREADS;
 +
-+  space->format = GST_VIDEO_FORMAT_ARGB;    /* hard fix to ARGB */
++  // space->format = GST_VIDEO_FORMAT_ARGB;    /* hard fix to ARGB */
 +  space->framebuffer = NULL;  /* to identify that fb0/fb1 was not ever been opened */
 +  space->fd = -1;
 +  space->fd_vc8k = -1;
 +  select_vc8k_pp_dst(space, PP_DST_FB0);  /* default selest fb0, may be changed later in set_property */
 +
-+  printf("%s %s - nufbdevsink\n", __DATE__, __TIME__);
++  printf("[nufbdevsink] - %s %s \n", __DATE__, __TIME__);
 +}
 +
 +void
@@ -1907,6 +1924,15 @@ index 0000000..a66b144
 +      break;
 +    case PROP_ROTATE:
 +      pp->rotation = g_value_get_int (value);
++      break;
++    case PROP_PPFMT:
++      pp->img_out_fmt = g_value_get_int (value);
++      if (pp->img_out_fmt == PP_FMT_RGB888)
++          pp->img_out_fmt = V4L2_PIX_FMT_ARGB32;
++      else if (pp->img_out_fmt == PP_FMT_RGB565)
++          pp->img_out_fmt = V4L2_PIX_FMT_RGB565;
++      else
++          pp->img_out_fmt = V4L2_PIX_FMT_NV12;
 +      break;
 +    case PROP_FBSEL:
 +      select_vc8k_pp_dst(csp, g_value_get_int (value));
@@ -2020,10 +2046,10 @@ index 0000000..a66b144
 +    GST_PACKAGE_NAME, GST_PACKAGE_ORIGIN)
 diff --git a/sys/nufbdev/gstnufbdevsink.h b/sys/nufbdev/gstnufbdevsink.h
 new file mode 100644
-index 0000000..d8b06e0
+index 0000000..0ad3f7b
 --- /dev/null
 +++ b/sys/nufbdev/gstnufbdevsink.h
-@@ -0,0 +1,142 @@
+@@ -0,0 +1,146 @@
 +/* GStreamer
 + * Copyright (C) <1999> Erik Walthinsen <omega@cse.ogi.edu>
 + * This file:
@@ -2060,21 +2086,21 @@ index 0000000..d8b06e0
 + */
 +struct vc8k_pp_params {
 +	int   enable_pp;
-+	int   frame_buf_paddr;           /* physical address of frame buffer          */
++	int   frame_buf_paddr;       /* physical address of frame buffer          */
 +	int   frame_buff_size;
-+	int   frame_buf_w;               /* width of frame buffer width               */
-+	int   frame_buf_h;               /* height of frame buffer                    */
-+	int   img_out_x;                 /* image original point(x,y) on frame buffer */
-+	int   img_out_y;                 /* image original point(x,y) on frame buffer */
-+	int   img_out_w;                 /* image output width on frame buffer        */
-+	int   img_out_h;                 /* image output height on frame buffer       */
-+	int   img_out_fmt;               /* image output format                       */
++	int   frame_buf_w;           /* width of frame buffer width               */
++	int   frame_buf_h;           /* height of frame buffer                    */
++	int   img_out_x;             /* image original point(x,y) on frame buffer */
++	int   img_out_y;             /* image original point(x,y) on frame buffer */
++	int   img_out_w;             /* image output width on frame buffer        */
++	int   img_out_h;             /* image output height on frame buffer       */
++	int   img_out_fmt;           /* image output format                       */
 +	int   rotation;
-+	int   pp_out_dst;                /* PP output destination.                    */
-+                                   /* 0: fb0                                    */
-+                                   /* 1: fb1                                    */
-+                                   /* otherwise: frame_buf_paddr                */
-+  int   libjpeg_mode;              /* 0: v4l2-only; 1: libjpeg+v4l2             */
++	int   pp_out_dst;            /* PP output destination.                    */
++				     /* 0: fb0                                    */
++				     /* 1: fb1                                    */
++				     /* otherwise: frame_buf_paddr                */
++	int   libjpeg_mode;          /* 0: v4l2-only; 1: libjpeg+v4l2             */
 +	int   resserved[8];
 +};
 +
@@ -2090,6 +2116,10 @@ index 0000000..d8b06e0
 +
 +#define PP_DST_FB0                                      0U
 +#define PP_DST_FB1                                      1U
++
++#define PP_FMT_RGB888                                   0U
++#define PP_FMT_RGB565                                   1U
++#define PP_FMT_NV12                                     2U
 +
 +struct _dc_overlay_rect {
 +    unsigned int tlx;
@@ -2197,5 +2227,5 @@ index 0000000..20ca11f
 +  pkgconfig.generate(gstnufbdevsink, install_dir : plugins_pkgconfig_install_dir)
 +endif
 -- 
-2.17.1
+2.34.1
 
