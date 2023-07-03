@@ -54,8 +54,8 @@ IMAGE_CMD_spinand() {
 	ENC=""
 	FIPDIR=""
 	RTP_BIN=${TFA_M4_BIN}
-	rm ${DEPLOY_DIR_IMAGE}/fip_with_optee-${IMAGE_BASENAME}-${MACHINE}.bin-nand -f
-	rm ${DEPLOY_DIR_IMAGE}/fip_without_optee-${IMAGE_BASENAME}-${MACHINE}.bin-nand -f
+	rm ${DEPLOY_DIR_IMAGE}/fip_with_optee-${IMAGE_BASENAME}-${MACHINE}.bin-spinand -f
+	rm ${DEPLOY_DIR_IMAGE}/fip_without_optee-${IMAGE_BASENAME}-${MACHINE}.bin-spinand -f
 	if [ "${SECURE_BOOT}" = "yes" ]; then
 		FIPDIR="fip/"
 		ENC="enc_"
