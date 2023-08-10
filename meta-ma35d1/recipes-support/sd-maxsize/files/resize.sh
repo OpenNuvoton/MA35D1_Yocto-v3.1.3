@@ -25,7 +25,7 @@ NUM=`echo $PARTNR | tr -cd "[0-9]"`
 fdisk -l $DEVICE$PARTNR >> /dev/null 2>&1 || (echo "could not find device $DEVICE$PARTNR - please runs in superuser or check the name" && exit 1)
 CURRENTSIZEB=`fdisk -l $DEVICE$PARTNR | grep "Disk $DEVICE$PARTNR" | head -n 1 | cut -d' ' -f5`
 CURRENTSIZE=$(expr $CURRENTSIZEB / 1024 / 1024)
-MAXSIZEMB=`printf %s\\n 'unit MB print list' | parted 2>/dev/null | grep "Disk ${DEVICE}" | cut -d' ' -f3 | tr -d MB`
+MAXSIZEMB=`printf %s\\n 'unit MB print list' | parted 2>/dev/null | grep "Disk ${DEVICE}:" | cut -d' ' -f3 | tr -d MB`
 echo "[ok] would/will resize to from ${CURRENTSIZE}MB to ${MAXSIZEMB}MB "
 parted ${DEVICE} resizepart ${NUM} ${MAXSIZEMB}
 resize2fs $DEVICE$PARTNR
