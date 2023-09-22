@@ -25,6 +25,19 @@ do_image_spinand[depends] = "virtual/trusted-firmware-a:do_deploy \
                              ${@bb.utils.contains('IMAGE_FSTYPES', 'nand', '${IMAGE_BASENAME}:do_image_nand', '', d)} \
                             "
 
+IMAGE_TYPEDEP_spinand = "jffs2"
+do_image_spinor[depends] = "virtual/trusted-firmware-a:do_deploy \
+                             ${@bb.utils.contains('MACHINE_FEATURES', 'optee', 'virtual/optee-os:do_deploy', '',d)} \
+                             virtual/kernel:do_deploy \
+                             virtual/bootloader:do_deploy \
+                             python3-nuwriter-native:do_install \
+                             jq-native:do_populate_sysroot \
+                             mtd-utils-native:do_populate_sysroot \
+                             m4proj:do_deploy \
+                             ${@bb.utils.contains('IMAGE_FSTYPES', 'nand', '${IMAGE_BASENAME}:do_image_nand', '', d)} \
+                             ${@bb.utils.contains('IMAGE_FSTYPES', 'spinand', '${IMAGE_BASENAME}:do_image_spinand', '', d)} \
+                            "
+
 IMAGE_TYPEDEP_sdcard = "ext4"
 do_image_sdcard[depends] = "parted-native:do_populate_sysroot \
                             virtual/trusted-firmware-a:do_deploy \
@@ -36,6 +49,7 @@ do_image_sdcard[depends] = "parted-native:do_populate_sysroot \
                             m4proj:do_deploy \
                             ${@bb.utils.contains('IMAGE_FSTYPES', 'nand', '${IMAGE_BASENAME}:do_image_nand', '', d)} \
                             ${@bb.utils.contains('IMAGE_FSTYPES', 'spinand', '${IMAGE_BASENAME}:do_image_spinand', '', d)} \
+                            ${@bb.utils.contains('IMAGE_FSTYPES', 'spinor', '${IMAGE_BASENAME}:do_image_spinor', '', d)} \
                            "
 NUWRITER_DIR="${RECIPE_SYSROOT_NATIVE}${datadir}/nuwriter"
 M4_OPJCOPY="${RECIPE_SYSROOT_NATIVE}${datadir}/gcc-arm-none-eabi/arm-none-eabi/bin/objcopy"
@@ -176,7 +190,143 @@ IMAGE_CMD_spinand() {
 			rm -rf $(date "+%m%d-*");)
 		fi
 	fi
-} 
+}
+
+IMAGE_CMD_spinor() {
+	if [ -f ${DEPLOY_DIR_IMAGE}/${IMAGE_BASENAME}-${MACHINE}-enc-spinor.pack ]; then
+		rm ${DEPLOY_DIR_IMAGE}/header-${IMAGE_BASENAME}-${MACHINE}-enc-spinor.bin -f
+		rm ${DEPLOY_DIR_IMAGE}/${IMAGE_BASENAME}-${MACHINE}-enc-spinor.pack -f
+		rm ${DEPLOY_DIR_IMAGE}/pack-${IMAGE_BASENAME}-${MACHINE}-enc-spinor.bin -f
+	elif [ -f ${DEPLOY_DIR_IMAGE}/${IMAGE_BASENAME}-${MACHINE}-spinor.pack ]; then
+		rm ${DEPLOY_DIR_IMAGE}/header-${IMAGE_BASENAME}-${MACHINE}-spinor.bin -f
+		rm ${DEPLOY_DIR_IMAGE}/${IMAGE_BASENAME}-${MACHINE}-spinor.pack -f
+		rm ${DEPLOY_DIR_IMAGE}/pack-${IMAGE_BASENAME}-${MACHINE}-spinor.bin -f
+	fi
+
+	ENC=""
+	FIPDIR=""
+	RTP_BIN=${TFA_M4_BIN}
+	rm ${DEPLOY_DIR_IMAGE}/fip_with_optee-${IMAGE_BASENAME}-${MACHINE}.bin-nand -f
+	rm ${DEPLOY_DIR_IMAGE}/fip_without_optee-${IMAGE_BASENAME}-${MACHINE}.bin-nand -f
+	if [ "${SECURE_BOOT}" = "yes" ]; then
+		FIPDIR="fip/"
+		ENC="enc_"
+		rm ${DEPLOY_DIR_IMAGE}/${FIPDIR}fip_with_optee-${IMAGE_BASENAME}-${MACHINE}.bin-spinor -f
+		rm ${DEPLOY_DIR_IMAGE}/${FIPDIR}fip_without_optee-${IMAGE_BASENAME}-${MACHINE}.bin-spinor -f
+		(cd ${DEPLOY_DIR_IMAGE}; mkdir -p ${FIPDIR}; \
+		cat ${NUWRITER_DIR}/enc_fip.json | jq -r ".header.secureboot = \"yes\"" | \
+		jq -r ".header.aeskey = \"${AES_KEY}\"" | jq -r ".header.ecdsakey = \"${ECDSA_KEY}\"" \
+		> ${FIPDIR}enc_fip.json; \
+	cp ${DEPLOY_DIR_IMAGE}/bl31-${TFA_PLATFORM}.bin ${FIPDIR}enc.bin; \
+	nuwriter/nuwriter -c ${FIPDIR}enc_fip.json>/dev/null; \
+	cat conv/enc_enc.bin conv/header.bin >${FIPDIR}${ENC}bl31-${TFA_PLATFORM}.bin; \
+	rm -rf $(date "+%m%d-*"); \
+	cp ${DEPLOY_DIR_IMAGE}/tee-header_v2-optee.bin ${FIPDIR}/enc.bin; \
+	nuwriter/nuwriter -c ${FIPDIR}enc_fip.json>/dev/null; \
+	cat conv/enc_enc.bin conv/header.bin >${FIPDIR}${ENC}tee-header_v2-optee.bin; \
+	rm -rf $(date "+%m%d-*"); \
+	cp ${DEPLOY_DIR_IMAGE}/tee-pager_v2-optee.bin ${FIPDIR}enc.bin; \
+	nuwriter/nuwriter -c ${FIPDIR}enc_fip.json>/dev/null; \
+	cat conv/enc_enc.bin conv/header.bin >${FIPDIR}${ENC}tee-pager_v2-optee.bin; \
+	rm -rf $(date "+%m%d-*"); \
+	cp ${DEPLOY_DIR_IMAGE}/u-boot.bin-spinor ${FIPDIR}enc.bin; \
+	nuwriter/nuwriter -c ${FIPDIR}enc_fip.json>/dev/null; \
+	cat conv/enc_enc.bin conv/header.bin >${FIPDIR}${ENC}u-boot.bin-spinor; \
+	rm -rf $(date "+%m%d-*");)
+	if [ "${TFA_LOAD_M4}" = "yes" ]; then
+		(cd ${DEPLOY_DIR_IMAGE}; \
+		cp ${DEPLOY_DIR_IMAGE}/${TFA_M4_BIN} ${FIPDIR}enc.bin; \
+		nuwriter/nuwriter -c ${FIPDIR}enc_fip.json>/dev/null; \
+			cat conv/enc_enc.bin conv/header.bin >${FIPDIR}${ENC}rtp_bin; \
+		rm -rf $(date "+%m%d-*");)
+		RTP_BIN="rtp_bin"
+	fi
+	rm ${DEPLOY_DIR_IMAGE}/${FIPDIR}enc.bin;
+	fi
+
+	# Generate the FIP image  with the bl2.bin and required Device Tree
+	if ${@bb.utils.contains('MACHINE_FEATURES', 'optee', 'true', 'false', d)}; then
+		if [ "${TFA_LOAD_M4}" = "no" ]; then
+			${DEPLOY_DIR_IMAGE}/fiptool create \
+				--soc-fw ${DEPLOY_DIR_IMAGE}/${FIPDIR}${ENC}bl31-${TFA_PLATFORM}.bin \
+				--tos-fw ${DEPLOY_DIR_IMAGE}/${FIPDIR}${ENC}tee-header_v2-optee.bin \
+				--tos-fw-extra1 ${DEPLOY_DIR_IMAGE}/${FIPDIR}${ENC}tee-pager_v2-optee.bin \
+				--nt-fw ${DEPLOY_DIR_IMAGE}/${FIPDIR}${ENC}u-boot.bin-spinor \
+				${DEPLOY_DIR_IMAGE}/${ENC}fip_with_optee-${IMAGE_BASENAME}-${MACHINE}.bin-spinor
+		else
+			if [ -f ${DEPLOY_DIR_IMAGE}/${TFA_M4_BIN} ]; then
+				${DEPLOY_DIR_IMAGE}/fiptool create \
+					--scp-fw ${DEPLOY_DIR_IMAGE}/${FIPDIR}${ENC}${RTP_BIN} \
+					--soc-fw ${DEPLOY_DIR_IMAGE}/${FIPDIR}${ENC}bl31-${TFA_PLATFORM}.bin \
+					--tos-fw ${DEPLOY_DIR_IMAGE}/${FIPDIR}${ENC}tee-header_v2-optee.bin \
+					--tos-fw-extra1 ${DEPLOY_DIR_IMAGE}/${FIPDIR}${ENC}tee-pager_v2-optee.bin \
+					--nt-fw ${DEPLOY_DIR_IMAGE}/${FIPDIR}${ENC}u-boot.bin-spinor \
+					${DEPLOY_DIR_IMAGE}/${ENC}fip_with_optee-${IMAGE_BASENAME}-${MACHINE}.bin-spinor
+			else
+				bberror "Could not found ${DEPLOY_DIR_IMAGE}/${TFA_M4_BIN}"
+            fi
+		fi
+		(cd ${DEPLOY_DIR_IMAGE}; ln -sf ${ENC}fip_with_optee-${IMAGE_BASENAME}-${MACHINE}.bin-spinor fip.bin-spinor)
+	else
+		if [ "${TFA_LOAD_M4}" = "no" ]; then
+			${DEPLOY_DIR_IMAGE}/fiptool create \
+				--soc-fw ${DEPLOY_DIR_IMAGE}/${FIPDIR}${ENC}bl31-${TFA_PLATFORM}.bin \
+				--nt-fw ${DEPLOY_DIR_IMAGE}/${FIPDIR}${ENC}u-boot.bin-spinor \
+				${DEPLOY_DIR_IMAGE}/${ENC}fip_without_optee-${IMAGE_BASENAME}-${MACHINE}.bin-spinor
+		else
+			if [ -f ${DEPLOY_DIR_IMAGE}/${TFA_M4_BIN} ]; then
+				${DEPLOY_DIR_IMAGE}/fiptool create \
+					--scp-fw ${DEPLOY_DIR_IMAGE}/${FIPDIR}${ENC}${RTP_BIN} \
+					--soc-fw ${DEPLOY_DIR_IMAGE}/${FIPDIR}${ENC}bl31-${TFA_PLATFORM}.bin \
+					--nt-fw ${DEPLOY_DIR_IMAGE}/${FIPDIR}${ENC}u-boot.bin-spinor \
+					${DEPLOY_DIR_IMAGE}/${ENC}fip_without_optee-${IMAGE_BASENAME}-${MACHINE}.bin-spinor
+			else
+				bberror "Could not found ${DEPLOY_DIR_IMAGE}/${TFA_M4_BIN}"
+			fi
+		fi
+		(cd ${DEPLOY_DIR_IMAGE}; ln -sf ${ENC}fip_without_optee-${IMAGE_BASENAME}-${MACHINE}.bin-spinor fip.bin-spinor)
+	fi
+
+	if [ -f ${IMGDEPLOYDIR}/${IMAGE_NAME}.rootfs.jffs2 ]; then
+		if [ "${SECURE_BOOT}" = "no" ]; then
+			(cd ${DEPLOY_DIR_IMAGE}; \
+			cp ${NUWRITER_DIR}/*-spinor.json  nuwriter; \
+			ln -sf ${IMGDEPLOYDIR}/${IMAGE_NAME}.rootfs.ubi rootfs.ubi-spinor; \
+			nuwriter/nuwriter -c nuwriter/header-spinor.json; \
+			cp conv/header.bin header-${IMAGE_BASENAME}-${MACHINE}-spinor.bin; \
+			nuwriter/nuwriter -p nuwriter/pack-spinor.json; \
+			cp pack/pack.bin pack-${IMAGE_BASENAME}-${MACHINE}-spinor.bin; \
+			ln -sf pack-${IMAGE_BASENAME}-${MACHINE}-spinor.bin ${IMAGE_BASENAME}-${MACHINE}-spinor.pack; \
+			rm -rf $(date "+%m%d-*");)
+			if [ -f ${DEPLOY_DIR_IMAGE}/enc_bl2-ma35d1-spinor.dtb ]; then
+				rm ${DEPLOY_DIR_IMAGE}/enc_bl2-ma35d1-spinor.dtb
+				rm ${DEPLOY_DIR_IMAGE}/enc_bl2-ma35d1-spinor.bin
+			fi
+		else
+			(cd ${DEPLOY_DIR_IMAGE}; \
+			ln -sf ${IMGDEPLOYDIR}/${IMAGE_NAME}.rootfs.ext4 rootfs.ext4-sdcard; \
+			$(cat ${NUWRITER_DIR}/header-spinor.json | jq -r ".header.secureboot = \"yes\"" | \
+			jq -r ".header.aeskey = \"${AES_KEY}\"" | jq -r ".header.ecdsakey = \"${ECDSA_KEY}\"" \
+			> nuwriter/header-spinor.json); \
+			ln -sf ${IMGDEPLOYDIR}/${IMAGE_NAME}.rootfs.ubi rootfs.ubi-spinor; \
+			nuwriter/nuwriter -c nuwriter/header-spinor.json; \
+			cp conv/header.bin header-${IMAGE_BASENAME}-${MACHINE}-enc-spinor.bin; \
+			cp conv/enc_bl2-ma35d1.dtb enc_bl2-ma35d1-spinor.dtb; \
+			cp conv/enc_bl2-ma35d1.bin enc_bl2-ma35d1-spinor.bin; \
+			echo "{\""publicx"\": \""$(head -6 conv/header_key.txt | tail +6)"\", \
+			\""publicy"\": \""$(head -7 conv/header_key.txt | tail +7)"\", \
+			\""aeskey"\": \""$(head -2 conv/header_key.txt | tail +2)"\"}" | \
+			jq  > nuwriter/otp_key-spinor.json; \
+			$(cat ${NUWRITER_DIR}/pack-spinor.json | \
+			jq 'setpath(["image",1,"file"];"enc_bl2-ma35d1-spinor.dtb")' | \
+			jq 'setpath(["image",2,"file"];"enc_bl2-ma35d1-spinor.bin")' > nuwriter/pack-spinor.json); \
+			nuwriter/nuwriter -p nuwriter/pack-spinor.json; \
+			cp pack/pack.bin pack-${IMAGE_BASENAME}-${MACHINE}-enc-spinor.bin; \
+			ln -sf pack-${IMAGE_BASENAME}-${MACHINE}-enc-spinor.bin ${IMAGE_BASENAME}-${MACHINE}-enc-spinor.pack; \
+			rm -rf $(date "+%m%d-*");)
+		fi
+	fi
+}
 
 IMAGE_CMD_nand() {
 	if [ -f ${DEPLOY_DIR_IMAGE}/${IMAGE_BASENAME}-${MACHINE}-enc-nand.pack ]; then

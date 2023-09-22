@@ -80,6 +80,13 @@ do_compile_append() {
 				sed -i "s/boot_targets=/boot_targets=mtd0 /1" ${B}/${config}/u-boot-initial-env-${type}
 			fi
 
+			if [ "${type}" = "spinor" ]; then
+				sed -i "s/boot_targets=/boot_targets=spinor0 /1" ${B}/${config}/u-boot-initial-env-${type}
+				sed -i '/spinor_bootargs=/d' ${B}/${config}/u-boot-initial-env-${type}
+				sed -i '25i spinor_bootargs=${UBOOT_SPINOR_BOOTARGS}' ${B}/${config}/u-boot-initial-env-${type}
+
+			fi
+
 			if [ "${type}" = "nand" ]; then
 				sed -i "s/boot_targets=/boot_targets=nand0 /1" ${B}/${config}/u-boot-initial-env-${type}
 			fi
