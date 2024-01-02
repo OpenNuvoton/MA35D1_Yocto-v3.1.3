@@ -1,0 +1,17 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<manifest>
+
+  <default sync-j="2"/>
+  <remote fetch="https://github.com/OpenNuvoton" name="nuvoton"/>
+  <remote fetch="https://git.yoctoproject.org" name="yocto"/>
+  <remote fetch="https://github.com/openembedded" name="oe"/>
+  <remote fetch="https://github.com/meta-qt5" name="qt"/>
+  <project remote="nuvoton" name="MA35D1_Yocto-v3.1.3" revision="master" path="sources"/>
+  <project remote="yocto" revision="251639560dd29bd2da5e694c1d5958ca26b12d0d" name="poky" path="sources/poky"/>
+  <project remote="yocto" revision="89abc62b47f6f20db9d00a8ec9b2c1b6b60ac3f9" name="meta-virtualization" path="sources/meta-virtualization"/>
+  <project remote="oe" revision="430ef96fe65f62d8da995f446d5b9b093544f031" name="meta-openembedded" path="sources/meta-openembedded"/>
+  <project remote="qt" revision="b4d24d70aca75791902df5cd59a4f4a54aa4a125" name="meta-qt5" upstream="dunfell" path="sources/meta-qt5"/>
+
+ 
+
+</manifest>

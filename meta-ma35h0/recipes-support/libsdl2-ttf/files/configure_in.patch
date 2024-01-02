@@ -1,0 +1,67 @@
+--- SDL2_ttf-2.0.12/configure.in	2013-08-11 01:42:03.000000000 +0800
++++ SDL2_ttf-2.0.12/configure_modify.in	2021-03-15 16:57:07.474208349 +0800
+@@ -86,48 +86,9 @@
+ esac
+ AM_CONDITIONAL(USE_VERSION_RC, test x$use_version_rc = xtrue)
+ 
+-dnl Check for the FreeType 2 library
+-dnl
+-dnl Get the cflags and libraries from the freetype-config script
+-dnl
+-AC_ARG_WITH(freetype-prefix,[  --with-freetype-prefix=PFX   Prefix where FREETYPE is 
+-installed (optional)],
+-            freetype_prefix="$withval", freetype_prefix="")
+-AC_ARG_WITH(freetype-exec-prefix,[  --with-freetype-exec-prefix=PFX Exec prefix 
+-where FREETYPE is installed (optional)],
+-            freetype_exec_prefix="$withval", freetype_exec_prefix="")
++CFLAGS="$CFLAGS -isystem=/usr/include/SDL2 -isystem=/usr/include/freetype2"
++LIBS="$LIBS -lfreetype -lSDL2"
+ 
+-if test x$freetype_exec_prefix != x ; then
+-     freetype_args="$freetype_args --exec-prefix=$freetype_exec_prefix"
+-     if test x${FREETYPE_CONFIG+set} != xset ; then
+-        FREETYPE_CONFIG=$freetype_exec_prefix/bin/freetype-config
+-     fi
+-fi
+-if test x$freetype_prefix != x ; then
+-     freetype_args="$freetype_args --prefix=$freetype_prefix"
+-     if test x${FREETYPE_CONFIG+set} != xset ; then
+-        FREETYPE_CONFIG=$freetype_prefix/bin/freetype-config
+-     fi
+-fi
+-AC_PATH_PROG(FREETYPE_CONFIG, freetype-config, no)
+-no_freetype=""
+-if test "$FREETYPE_CONFIG" = "no" ; then
+-    AC_MSG_ERROR([
+-*** Unable to find FreeType2 library (http://www.freetype.org/)
+-])
+-else
+-    CFLAGS="$CFLAGS `$FREETYPE_CONFIG $freetypeconf_args --cflags`"
+-    LIBS="$LIBS `$FREETYPE_CONFIG $freetypeconf_args --libs`"
+-fi
+-
+-dnl Check for SDL
+-SDL_VERSION=2.0.0
+-AC_SUBST(SDL_VERSION)
+-AM_PATH_SDL2($SDL_VERSION,
+-            :,
+-	    AC_MSG_ERROR([*** SDL version $SDL_VERSION not found!])
+-)
+-CFLAGS="$CFLAGS $SDL_CFLAGS"
+ LIBS="$LIBS $SDL_LIBS"
+ 
+ dnl Check for OpenGL
+@@ -164,13 +125,6 @@
+ esac
+ AC_MSG_CHECKING(for OpenGL support)
+ have_opengl=no
+-AC_TRY_COMPILE([
+- #include "SDL_opengl.h"
+-],[
+- GLuint texture;
+-],[
+-have_opengl=yes
+-])
+ AC_MSG_RESULT($have_opengl)
+ if test x$have_opengl = xyes; then
+     CFLAGS="$CFLAGS -DHAVE_OPENGL"

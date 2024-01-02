@@ -120,11 +120,17 @@ fi
 generated_config=
 if [ "$build_dir_setup_enabled" = "true" ]; then
     mv conf/local.conf conf/local.conf.sample
-
-    # Generate the local.conf based on the Yocto defaults
-    TEMPLATES=$CWD/sources/meta-ma35d1/base/
     grep -v '^#\|^$' conf/local.conf.sample > conf/local.conf
-    echo MACHINE_FEATURES_append = \" optee \" >> conf/local.conf
+    # Generate the local.conf based on the Yocto default
+    TEMPLATES=$CWD/sources/meta-ma35d1/base/
+    if [[ "$DISTRO" == *"nvt-ma35d0"* ]]; then
+       TEMPLATES=$CWD/sources/meta-ma35d0/base/
+       echo MACHINE_FEATURES_append = \" optee \" >> conf/local.conf
+    elif [[ "$DISTRO" == *"nvt-ma35h0"* ]]; then
+       TEMPLATES=$CWD/sources/meta-ma35h0/base/
+    else
+       echo MACHINE_FEATURES_append = \" optee \" >> conf/local.conf
+    fi
     cat >> conf/local.conf <<EOF
 
 DL_DIR ?= "\${BSPDIR}/downloads/"

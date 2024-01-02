@@ -1,0 +1,12 @@
+[Unit]
+Description=Run SD resize with systemd right before login prompt
+After=serial-getty@.service
+
+[Service]
+Type=idle
+RemainAfterExit=yes
+ExecStart=/etc/resize.sh @DISKDRIVE@ @DISKNUM@
+StandardOutput=journal+console
+
+[Install]
+WantedBy=multi-user.target
