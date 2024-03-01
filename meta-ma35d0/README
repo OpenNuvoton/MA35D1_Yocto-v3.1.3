@@ -1,0 +1,12 @@
+OpenEmbedded/Yocto BSP layer for Nuvoton's platforms
+======================================================
+
+This layer provides support for Nuvoton ma35d0's platforms for use with
+OpenEmbedded and/or Yocto.
+
+This layer depends on:
+
+URI: git://git.openembedded.org/openembedded-core
+branch: dunfell
+revision: HEAD
+

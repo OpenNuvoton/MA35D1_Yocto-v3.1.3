@@ -1,0 +1,57 @@
+#---------------------------------------------------------------------------------
+#  Release Note
+#---------------------------------------------------------------------------------
+
+[Version 0.4.1]
+1. Support GStreamer 1080P H2640 playback.
+2. Re-define device tree settings for VC8000.
+3. Pre-allocate H264 reference buffer from reserved memory. The number and size
+   of pre-allocated buffers are dependent on device tree settings. If wanted
+   number of buffers can not allocate from reserved memory, VC8000 driver will
+   try allocate DMA buffer from kernel.
+4. Introduce concept of global and local PP setting for H264/JPEG decode context.
+
+[Version 0.2.0]
+1. VC8000 V4L2 ioctl commands can send to the corresponding opened context.
+2. Support GStreamer nufbdevsink plugin for VC8000 H264/JPEG decode + PP directly output
+   to frame buffer. 
+
+
+[Version 0.1.3]
+1. Fixed the bug that H264/JPEG decode output images were not correctly written to V4L2 buffer YUV planes.
+2. Support GStreamer V4L2 H264 and JPEG (includes motion JPEG) decode  
+3. Support GStreamer native videoconvert to fbdevsink
+4. Modify GSTreamer fbdevsink plugin to support VC8000 H264/JPEG + PP directly output to frame buffer 
+
+
+
+#---------------------------------------------------------------------------------
+#  GStreamer H264 playback with native videoconvert
+#---------------------------------------------------------------------------------
+
+[H264 decode example]
+#gst-launch-1.0 filesrc location=/mnt/master_vga.264 ! h264parse ! v4l2h264dec ! videoconvert ! fbdevsink sync=false
+
+
+[JPEG decode example]
+#gst-launch-1.0 -v filesrc location=/mnt/example.mjpeg ! jpegparse ! v4l2jpegdec ! videoconvert ! fbdevsink
+#gst-launch-1.0 -v filesrc location=/mnt/Ball_1440x900.jpg ! jpegparse ! v4l2jpegdec ! videoconvert ! fbdevsink
+
+
+
+#---------------------------------------------------------------------------------
+#  GStreamer H264 playback with VC8000 PP direclty output to frame buffer 
+#---------------------------------------------------------------------------------
+
+Please reanme libgstfbdev_vc8k.so to libgstfbdev.so and overwrite rootfs /usr/lib/gstreamer-1.0/libgstfbdev.so.
+
+[H264 decode example]
+#gst-launch-1.0 filesrc location=/mnt/master_vga.264 ! h264parse ! v4l2h264dec ! nufbdevsink ! fakesink
+gst-launch-1.0 filesrc location=/mnt/test.264 ! h264parse ! v4l2h264dec ! nufbdevsink width=640 height=480 x-pos=50 y-pos=50 rotate=0 ! fakesink
+
+
+[JPEG decode example]
+#gst-launch-1.0 -v filesrc location=/mnt/example.mjpeg ! jpegparse ! v4l2jpegdec ! nufbdevsink ! fakesink
+#gst-launch-1.0 -v filesrc location=/mnt/Ball_1440x900.jpg ! jpegparse ! v4l2jpegdec ! nufbdevsink ! fakesink
+
+
