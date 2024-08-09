@@ -1,0 +1,13 @@
+[Unit]
+Description=Start psplash boot splash screen
+DefaultDependencies=no
+RequiresMountsFor=/run
+After=multi-user.target
+
+[Service]
+Type=notify
+ExecStart=/usr/bin/psplash
+RemainAfterExit=yes
+
+[Install]
+WantedBy=sysinit.target
