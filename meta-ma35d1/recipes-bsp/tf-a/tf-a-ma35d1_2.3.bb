@@ -47,8 +47,11 @@ do_compile() {
     if [ "${SECURE_BOOT}" = "yes" ]; then
         TFA_OPT="${TFA_OPT} FIP_DE_AES=1"
     fi
-    if [ "${TFA_LOAD_M4}" = "yes" ]; then
+    if [ "${TFA_LOAD_SCP}" = "yes" ]; then
         TFA_OPT="${TFA_OPT} NEED_SCP_BL2=yes"
+        if [ "${TFA_SCP_M4}" = "no" ]; then
+            TFA_OPT="${TFA_OPT} MA35D1_SCPBL2_BASE=${TFA_SCP_BASE}"
+        fi
     fi
     if ${@bb.utils.contains('MACHINE_FEATURES', 'optee', 'true', 'false', d)}; then
         TFA_OPT="${TFA_OPT} NEED_BL32=yes"

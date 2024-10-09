@@ -33,8 +33,8 @@ TFA_PLATFORM ?= "ma35d0"
 TFA_DTB ?= "ma35d0xx7"
 PREFERRED_PROVIDER_virtual/trusted-firmware-a = "tf-a-ma35d0"
 EXTRA_IMAGEDEPENDS += "virtual/trusted-firmware-a"
-TFA_LOAD_M4 = "no"
-TFA_M4_BIN= "Template.bin"
+TFA_LOAD_CORE1 = "no"
+TFA_CORE1_BIN= "Template.bin"
 
 
 # =========================================================================

@@ -62,7 +62,7 @@ IMAGE_CMD_spinand() {
 
 	ENC=""
 	FIPDIR=""
-	RTP_BIN=${TFA_M4_BIN}
+	RTP_BIN=${TFA_CORE1_BIN}
 	rm ${DEPLOY_DIR_IMAGE}/fip_with_optee-${IMAGE_BASENAME}-${MACHINE}.bin-spinand -f
 	rm ${DEPLOY_DIR_IMAGE}/fip_without_optee-${IMAGE_BASENAME}-${MACHINE}.bin-spinand -f
 	if [ "${SECURE_BOOT}" = "yes" ]; then
@@ -90,9 +90,9 @@ IMAGE_CMD_spinand() {
 	nuwriter/nuwriter -c ${FIPDIR}enc_fip.json>/dev/null; \
 	cat conv/enc_enc.bin conv/header.bin >${FIPDIR}${ENC}u-boot.bin-spinand; \
 	rm -rf $(date "+%m%d-*");)
-	if [ "${TFA_LOAD_M4}" = "yes" ]; then
+	if [ "${TFA_LOAD_CORE1}" = "yes" ]; then
 		(cd ${DEPLOY_DIR_IMAGE}; \
-		cp ${DEPLOY_DIR_IMAGE}/${TFA_M4_BIN} ${FIPDIR}enc.bin; \
+		cp ${DEPLOY_DIR_IMAGE}/${TFA_CORE1_BIN} ${FIPDIR}enc.bin; \
 		nuwriter/nuwriter -c ${FIPDIR}enc_fip.json>/dev/null; \
 			cat conv/enc_enc.bin conv/header.bin >${FIPDIR}${ENC}rtp_bin; \
 		rm -rf $(date "+%m%d-*");)
@@ -103,7 +103,7 @@ IMAGE_CMD_spinand() {
 
 	# Generate the FIP image  with the bl2.bin and required Device Tree
 	if ${@bb.utils.contains('MACHINE_FEATURES', 'optee', 'true', 'false', d)}; then
-		if [ "${TFA_LOAD_M4}" = "no" ]; then
+		if [ "${TFA_LOAD_CORE1}" = "no" ]; then
 			${DEPLOY_DIR_IMAGE}/fiptool create \
 				--soc-fw ${DEPLOY_DIR_IMAGE}/${FIPDIR}${ENC}bl31-${TFA_PLATFORM}.bin \
 				--tos-fw ${DEPLOY_DIR_IMAGE}/${FIPDIR}${ENC}tee-header_v2-optee.bin \
@@ -111,7 +111,7 @@ IMAGE_CMD_spinand() {
 				--nt-fw ${DEPLOY_DIR_IMAGE}/${FIPDIR}${ENC}u-boot.bin-spinand \
 				${DEPLOY_DIR_IMAGE}/${ENC}fip_with_optee-${IMAGE_BASENAME}-${MACHINE}.bin-spinand
 		else
-			if [ -f ${DEPLOY_DIR_IMAGE}/${TFA_M4_BIN} ]; then
+			if [ -f ${DEPLOY_DIR_IMAGE}/${TFA_CORE1_BIN} ]; then
 				${DEPLOY_DIR_IMAGE}/fiptool create \
 					--scp-fw ${DEPLOY_DIR_IMAGE}/${FIPDIR}${ENC}${RTP_BIN} \
 					--soc-fw ${DEPLOY_DIR_IMAGE}/${FIPDIR}${ENC}bl31-${TFA_PLATFORM}.bin \
@@ -120,25 +120,25 @@ IMAGE_CMD_spinand() {
 					--nt-fw ${DEPLOY_DIR_IMAGE}/${FIPDIR}${ENC}u-boot.bin-spinand \
 					${DEPLOY_DIR_IMAGE}/${ENC}fip_with_optee-${IMAGE_BASENAME}-${MACHINE}.bin-spinand
 			else
-				bberror "Could not found ${DEPLOY_DIR_IMAGE}/${TFA_M4_BIN}"
+				bberror "Could not found ${DEPLOY_DIR_IMAGE}/${TFA_CORE1_BIN}"
             fi
 		fi
 		(cd ${DEPLOY_DIR_IMAGE}; ln -sf ${ENC}fip_with_optee-${IMAGE_BASENAME}-${MACHINE}.bin-spinand fip.bin-spinand)
 	else
-		if [ "${TFA_LOAD_M4}" = "no" ]; then
+		if [ "${TFA_LOAD_CORE1}" = "no" ]; then
 			${DEPLOY_DIR_IMAGE}/fiptool create \
 				--soc-fw ${DEPLOY_DIR_IMAGE}/${FIPDIR}${ENC}bl31-${TFA_PLATFORM}.bin \
 				--nt-fw ${DEPLOY_DIR_IMAGE}/${FIPDIR}${ENC}u-boot.bin-spinand \
 				${DEPLOY_DIR_IMAGE}/${ENC}fip_without_optee-${IMAGE_BASENAME}-${MACHINE}.bin-spinand
 		else
-			if [ -f ${DEPLOY_DIR_IMAGE}/${TFA_M4_BIN} ]; then
+			if [ -f ${DEPLOY_DIR_IMAGE}/${TFA_CORE1_BIN} ]; then
 				${DEPLOY_DIR_IMAGE}/fiptool create \
 					--scp-fw ${DEPLOY_DIR_IMAGE}/${FIPDIR}${ENC}${RTP_BIN} \
 					--soc-fw ${DEPLOY_DIR_IMAGE}/${FIPDIR}${ENC}bl31-${TFA_PLATFORM}.bin \
 					--nt-fw ${DEPLOY_DIR_IMAGE}/${FIPDIR}${ENC}u-boot.bin-spinand \
 					${DEPLOY_DIR_IMAGE}/${ENC}fip_without_optee-${IMAGE_BASENAME}-${MACHINE}.bin-spinand
 			else
-				bberror "Could not found ${DEPLOY_DIR_IMAGE}/${TFA_M4_BIN}"
+				bberror "Could not found ${DEPLOY_DIR_IMAGE}/${TFA_CORE1_BIN}"
 			fi
 		fi
 		(cd ${DEPLOY_DIR_IMAGE}; ln -sf ${ENC}fip_without_optee-${IMAGE_BASENAME}-${MACHINE}.bin-spinand fip.bin-spinand)
@@ -200,7 +200,7 @@ IMAGE_CMD_spinor() {
 
 	ENC=""
 	FIPDIR=""
-	RTP_BIN=${TFA_M4_BIN}
+	RTP_BIN=${TFA_CORE1_BIN}
 	rm ${DEPLOY_DIR_IMAGE}/fip_with_optee-${IMAGE_BASENAME}-${MACHINE}.bin-nand -f
 	rm ${DEPLOY_DIR_IMAGE}/fip_without_optee-${IMAGE_BASENAME}-${MACHINE}.bin-nand -f
 	if [ "${SECURE_BOOT}" = "yes" ]; then
@@ -228,9 +228,9 @@ IMAGE_CMD_spinor() {
 	nuwriter/nuwriter -c ${FIPDIR}enc_fip.json>/dev/null; \
 	cat conv/enc_enc.bin conv/header.bin >${FIPDIR}${ENC}u-boot.bin-spinor; \
 	rm -rf $(date "+%m%d-*");)
-	if [ "${TFA_LOAD_M4}" = "yes" ]; then
+	if [ "${TFA_LOAD_CORE1}" = "yes" ]; then
 		(cd ${DEPLOY_DIR_IMAGE}; \
-		cp ${DEPLOY_DIR_IMAGE}/${TFA_M4_BIN} ${FIPDIR}enc.bin; \
+		cp ${DEPLOY_DIR_IMAGE}/${TFA_CORE1_BIN} ${FIPDIR}enc.bin; \
 		nuwriter/nuwriter -c ${FIPDIR}enc_fip.json>/dev/null; \
 			cat conv/enc_enc.bin conv/header.bin >${FIPDIR}${ENC}rtp_bin; \
 		rm -rf $(date "+%m%d-*");)
@@ -241,7 +241,7 @@ IMAGE_CMD_spinor() {
 
 	# Generate the FIP image  with the bl2.bin and required Device Tree
 	if ${@bb.utils.contains('MACHINE_FEATURES', 'optee', 'true', 'false', d)}; then
-		if [ "${TFA_LOAD_M4}" = "no" ]; then
+		if [ "${TFA_LOAD_CORE1}" = "no" ]; then
 			${DEPLOY_DIR_IMAGE}/fiptool create \
 				--soc-fw ${DEPLOY_DIR_IMAGE}/${FIPDIR}${ENC}bl31-${TFA_PLATFORM}.bin \
 				--tos-fw ${DEPLOY_DIR_IMAGE}/${FIPDIR}${ENC}tee-header_v2-optee.bin \
@@ -249,7 +249,7 @@ IMAGE_CMD_spinor() {
 				--nt-fw ${DEPLOY_DIR_IMAGE}/${FIPDIR}${ENC}u-boot.bin-spinor \
 				${DEPLOY_DIR_IMAGE}/${ENC}fip_with_optee-${IMAGE_BASENAME}-${MACHINE}.bin-spinor
 		else
-			if [ -f ${DEPLOY_DIR_IMAGE}/${TFA_M4_BIN} ]; then
+			if [ -f ${DEPLOY_DIR_IMAGE}/${TFA_CORE1_BIN} ]; then
 				${DEPLOY_DIR_IMAGE}/fiptool create \
 					--scp-fw ${DEPLOY_DIR_IMAGE}/${FIPDIR}${ENC}${RTP_BIN} \
 					--soc-fw ${DEPLOY_DIR_IMAGE}/${FIPDIR}${ENC}bl31-${TFA_PLATFORM}.bin \
@@ -258,25 +258,25 @@ IMAGE_CMD_spinor() {
 					--nt-fw ${DEPLOY_DIR_IMAGE}/${FIPDIR}${ENC}u-boot.bin-spinor \
 					${DEPLOY_DIR_IMAGE}/${ENC}fip_with_optee-${IMAGE_BASENAME}-${MACHINE}.bin-spinor
 			else
-				bberror "Could not found ${DEPLOY_DIR_IMAGE}/${TFA_M4_BIN}"
+				bberror "Could not found ${DEPLOY_DIR_IMAGE}/${TFA_CORE1_BIN}"
             fi
 		fi
 		(cd ${DEPLOY_DIR_IMAGE}; ln -sf ${ENC}fip_with_optee-${IMAGE_BASENAME}-${MACHINE}.bin-spinor fip.bin-spinor)
 	else
-		if [ "${TFA_LOAD_M4}" = "no" ]; then
+		if [ "${TFA_LOAD_CORE1}" = "no" ]; then
 			${DEPLOY_DIR_IMAGE}/fiptool create \
 				--soc-fw ${DEPLOY_DIR_IMAGE}/${FIPDIR}${ENC}bl31-${TFA_PLATFORM}.bin \
 				--nt-fw ${DEPLOY_DIR_IMAGE}/${FIPDIR}${ENC}u-boot.bin-spinor \
 				${DEPLOY_DIR_IMAGE}/${ENC}fip_without_optee-${IMAGE_BASENAME}-${MACHINE}.bin-spinor
 		else
-			if [ -f ${DEPLOY_DIR_IMAGE}/${TFA_M4_BIN} ]; then
+			if [ -f ${DEPLOY_DIR_IMAGE}/${TFA_CORE1_BIN} ]; then
 				${DEPLOY_DIR_IMAGE}/fiptool create \
 					--scp-fw ${DEPLOY_DIR_IMAGE}/${FIPDIR}${ENC}${RTP_BIN} \
 					--soc-fw ${DEPLOY_DIR_IMAGE}/${FIPDIR}${ENC}bl31-${TFA_PLATFORM}.bin \
 					--nt-fw ${DEPLOY_DIR_IMAGE}/${FIPDIR}${ENC}u-boot.bin-spinor \
 					${DEPLOY_DIR_IMAGE}/${ENC}fip_without_optee-${IMAGE_BASENAME}-${MACHINE}.bin-spinor
 			else
-				bberror "Could not found ${DEPLOY_DIR_IMAGE}/${TFA_M4_BIN}"
+				bberror "Could not found ${DEPLOY_DIR_IMAGE}/${TFA_CORE1_BIN}"
 			fi
 		fi
 		(cd ${DEPLOY_DIR_IMAGE}; ln -sf ${ENC}fip_without_optee-${IMAGE_BASENAME}-${MACHINE}.bin-spinor fip.bin-spinor)
@@ -336,7 +336,7 @@ IMAGE_CMD_nand() {
 
 	ENC=""
 	FIPDIR=""
-    RTP_BIN=${TFA_M4_BIN}
+    RTP_BIN=${TFA_CORE1_BIN}
 	rm ${DEPLOY_DIR_IMAGE}/fip_with_optee-${IMAGE_BASENAME}-${MACHINE}.bin-nand -f
 	rm ${DEPLOY_DIR_IMAGE}/fip_without_optee-${IMAGE_BASENAME}-${MACHINE}.bin-nand -f
 	if [ "${SECURE_BOOT}" = "yes" ]; then
@@ -364,9 +364,9 @@ IMAGE_CMD_nand() {
 	nuwriter/nuwriter -c ${FIPDIR}enc_fip.json>/dev/null; \
 	cat conv/enc_enc.bin conv/header.bin >${FIPDIR}${ENC}u-boot.bin-nand; \
 	rm -rf $(date "+%m%d-*");)
-	if [ "${TFA_LOAD_M4}" = "yes" ]; then
+	if [ "${TFA_LOAD_CORE1}" = "yes" ]; then
 		(cd ${DEPLOY_DIR_IMAGE}; \
-		cp ${DEPLOY_DIR_IMAGE}/${TFA_M4_BIN} ${FIPDIR}enc.bin; \
+		cp ${DEPLOY_DIR_IMAGE}/${TFA_CORE1_BIN} ${FIPDIR}enc.bin; \
 		nuwriter/nuwriter -c ${FIPDIR}enc_fip.json>/dev/null; \
 			cat conv/enc_enc.bin conv/header.bin >${FIPDIR}${ENC}rtp_bin; \
 		rm -rf $(date "+%m%d-*");)
@@ -377,7 +377,7 @@ IMAGE_CMD_nand() {
 
 	# Generate the FIP image  with the bl2.bin and required Device Tree
 	if ${@bb.utils.contains('MACHINE_FEATURES', 'optee', 'true', 'false', d)}; then
-	if [ "${TFA_LOAD_M4}" = "no" ]; then
+	if [ "${TFA_LOAD_CORE1}" = "no" ]; then
 			${DEPLOY_DIR_IMAGE}/fiptool create \
 				--soc-fw ${DEPLOY_DIR_IMAGE}/${FIPDIR}${ENC}bl31-${TFA_PLATFORM}.bin \
 				--tos-fw ${DEPLOY_DIR_IMAGE}/${FIPDIR}${ENC}tee-header_v2-optee.bin \
@@ -385,7 +385,7 @@ IMAGE_CMD_nand() {
 				--nt-fw ${DEPLOY_DIR_IMAGE}/${FIPDIR}${ENC}u-boot.bin-nand \
 			${DEPLOY_DIR_IMAGE}/${ENC}fip_with_optee-${IMAGE_BASENAME}-${MACHINE}.bin-nand
 	else
-			if [ -f ${DEPLOY_DIR_IMAGE}/${TFA_M4_BIN} ]; then
+			if [ -f ${DEPLOY_DIR_IMAGE}/${TFA_CORE1_BIN} ]; then
 				${DEPLOY_DIR_IMAGE}/fiptool create \
 					--scp-fw ${DEPLOY_DIR_IMAGE}/${FIPDIR}${ENC}${RTP_BIN} \
 					--soc-fw ${DEPLOY_DIR_IMAGE}/${FIPDIR}${ENC}bl31-${TFA_PLATFORM}.bin \
@@ -394,25 +394,25 @@ IMAGE_CMD_nand() {
 					--nt-fw ${DEPLOY_DIR_IMAGE}/${FIPDIR}${ENC}u-boot.bin-nand \
 				${DEPLOY_DIR_IMAGE}/${ENC}fip_with_optee-${IMAGE_BASENAME}-${MACHINE}.bin-nand
 			else
-				bberror "Could not found ${DEPLOY_DIR_IMAGE}/${TFA_M4_BIN}"
+				bberror "Could not found ${DEPLOY_DIR_IMAGE}/${TFA_CORE1_BIN}"
 			fi
 	fi
 		(cd ${DEPLOY_DIR_IMAGE}; ln -sf ${ENC}fip_with_optee-${IMAGE_BASENAME}-${MACHINE}.bin-nand fip.bin-nand)
 	else
-		if [ "${TFA_LOAD_M4}" = "no" ]; then
+		if [ "${TFA_LOAD_CORE1}" = "no" ]; then
 			${DEPLOY_DIR_IMAGE}/fiptool create \
 				--soc-fw ${DEPLOY_DIR_IMAGE}/${FIPDIR}${ENC}bl31-${TFA_PLATFORM}.bin \
 				--nt-fw ${DEPLOY_DIR_IMAGE}/${FIPDIR}${ENC}u-boot.bin-nand \
 				${DEPLOY_DIR_IMAGE}/${ENC}fip_without_optee-${IMAGE_BASENAME}-${MACHINE}.bin-nand
 		else
-			if [ -f ${DEPLOY_DIR_IMAGE}/${TFA_M4_BIN} ]; then
+			if [ -f ${DEPLOY_DIR_IMAGE}/${TFA_CORE1_BIN} ]; then
 				${DEPLOY_DIR_IMAGE}/fiptool create \
 					--scp-fw ${DEPLOY_DIR_IMAGE}/${FIPDIR}${ENC}${RTP_BIN} \
 					--soc-fw ${DEPLOY_DIR_IMAGE}/${FIPDIR}${ENC}bl31-${TFA_PLATFORM}.bin \
 					--nt-fw ${DEPLOY_DIR_IMAGE}/${FIPDIR}${ENC}u-boot.bin-nand \
 					${DEPLOY_DIR_IMAGE}/${ENC}fip_without_optee-${IMAGE_BASENAME}-${MACHINE}.bin-nand
 			else
-				bberror "Could not found ${DEPLOY_DIR_IMAGE}/${TFA_M4_BIN}"
+				bberror "Could not found ${DEPLOY_DIR_IMAGE}/${TFA_CORE1_BIN}"
 			fi
 		fi
 		(cd ${DEPLOY_DIR_IMAGE}; ln -sf ${ENC}fip_without_optee-${IMAGE_BASENAME}-${MACHINE}.bin-nand fip.bin-nand)
@@ -482,7 +482,7 @@ IMAGE_CMD_sdcard() {
     
 	ENC=""
 	FIPDIR=""
-	RTP_BIN=${TFA_M4_BIN}
+	RTP_BIN=${TFA_CORE1_BIN}
 	rm ${DEPLOY_DIR_IMAGE}/fip_with_optee-${IMAGE_BASENAME}-${MACHINE}.bin-sdcard -f
 	rm ${DEPLOY_DIR_IMAGE}/fip_without_optee-${IMAGE_BASENAME}-${MACHINE}.bin-sdcard -f
 	if [ "${SECURE_BOOT}" = "yes" ]; then
@@ -510,9 +510,9 @@ IMAGE_CMD_sdcard() {
 	nuwriter/nuwriter -c ${FIPDIR}enc_fip.json>/dev/null; \
 	cat conv/enc_enc.bin conv/header.bin >${FIPDIR}${ENC}u-boot.bin-sdcard; \
 	rm -rf $(date "+%m%d-*");)
-	if [ "${TFA_LOAD_M4}" = "yes" ]; then
+	if [ "${TFA_LOAD_CORE1}" = "yes" ]; then
 		(cd ${DEPLOY_DIR_IMAGE}; \
-		cp ${DEPLOY_DIR_IMAGE}/${TFA_M4_BIN} ${FIPDIR}enc.bin; \
+		cp ${DEPLOY_DIR_IMAGE}/${TFA_CORE1_BIN} ${FIPDIR}enc.bin; \
 		nuwriter/nuwriter -c ${FIPDIR}enc_fip.json>/dev/null; \
 			cat conv/enc_enc.bin conv/header.bin >${FIPDIR}${ENC}rtp_bin; \
 		rm -rf $(date "+%m%d-*");)
@@ -523,7 +523,7 @@ IMAGE_CMD_sdcard() {
 
 	# Generate the FIP image  with the bl2.bin and required Device Tree
 	if ${@bb.utils.contains('MACHINE_FEATURES', 'optee', 'true', 'false', d)}; then
-		if [ "${TFA_LOAD_M4}" = "no" ]; then
+		if [ "${TFA_LOAD_CORE1}" = "no" ]; then
 			${DEPLOY_DIR_IMAGE}/fiptool create \
 				--soc-fw ${DEPLOY_DIR_IMAGE}/${FIPDIR}${ENC}bl31-${TFA_PLATFORM}.bin \
 				--tos-fw ${DEPLOY_DIR_IMAGE}/${FIPDIR}${ENC}tee-header_v2-optee.bin \
@@ -531,7 +531,7 @@ IMAGE_CMD_sdcard() {
 				--nt-fw ${DEPLOY_DIR_IMAGE}/${FIPDIR}${ENC}u-boot.bin-sdcard \
 				${DEPLOY_DIR_IMAGE}/${ENC}fip_with_optee-${IMAGE_BASENAME}-${MACHINE}.bin-sdcard
 		else
-			if [ -f ${DEPLOY_DIR_IMAGE}/${TFA_M4_BIN} ]; then
+			if [ -f ${DEPLOY_DIR_IMAGE}/${TFA_CORE1_BIN} ]; then
 				${DEPLOY_DIR_IMAGE}/fiptool create \
 					--scp-fw ${DEPLOY_DIR_IMAGE}/${FIPDIR}${ENC}${RTP_BIN} \
 					--soc-fw ${DEPLOY_DIR_IMAGE}/${FIPDIR}${ENC}bl31-${TFA_PLATFORM}.bin \
@@ -540,25 +540,25 @@ IMAGE_CMD_sdcard() {
 					--nt-fw ${DEPLOY_DIR_IMAGE}/${FIPDIR}${ENC}u-boot.bin-sdcard \
 					${DEPLOY_DIR_IMAGE}/${ENC}fip_with_optee-${IMAGE_BASENAME}-${MACHINE}.bin-sdcard
 			else
-				bberror "Could not found ${DEPLOY_DIR_IMAGE}/${TFA_M4_BIN}"
+				bberror "Could not found ${DEPLOY_DIR_IMAGE}/${TFA_CORE1_BIN}"
 			fi
 		fi
 		(cd ${DEPLOY_DIR_IMAGE}; ln -sf ${ENC}fip_with_optee-${IMAGE_BASENAME}-${MACHINE}.bin-sdcard fip.bin-sdcard)
 	else
-		if [ "${TFA_LOAD_M4}" = "no" ]; then
+		if [ "${TFA_LOAD_CORE1}" = "no" ]; then
 			${DEPLOY_DIR_IMAGE}/fiptool create \
 				--soc-fw ${DEPLOY_DIR_IMAGE}/${FIPDIR}${ENC}bl31-${TFA_PLATFORM}.bin \
 				--nt-fw ${DEPLOY_DIR_IMAGE}/${FIPDIR}${ENC}u-boot.bin-sdcard \
 				${DEPLOY_DIR_IMAGE}/${ENC}fip_without_optee-${IMAGE_BASENAME}-${MACHINE}.bin-sdcard
 		else
-			if [ -f ${DEPLOY_DIR_IMAGE}/${TFA_M4_BIN} ]; then
+			if [ -f ${DEPLOY_DIR_IMAGE}/${TFA_CORE1_BIN} ]; then
 				${DEPLOY_DIR_IMAGE}/fiptool create \
 					--scp-fw ${DEPLOY_DIR_IMAGE}/${FIPDIR}${ENC}${RTP_BIN} \
 					--soc-fw ${DEPLOY_DIR_IMAGE}/${FIPDIR}${ENC}bl31-${TFA_PLATFORM}.bin \
 					--nt-fw ${DEPLOY_DIR_IMAGE}/${FIPDIR}${ENC}u-boot.bin-sdcard \
 					${DEPLOY_DIR_IMAGE}/${ENC}fip_without_optee-${IMAGE_BASENAME}-${MACHINE}.bin-sdcard
 			else
-				bberror "Could not found ${DEPLOY_DIR_IMAGE}/${TFA_M4_BIN}"
+				bberror "Could not found ${DEPLOY_DIR_IMAGE}/${TFA_CORE1_BIN}"
 			fi
 		fi
 		(cd ${DEPLOY_DIR_IMAGE}; ln -sf ${ENC}fip_without_optee-${IMAGE_BASENAME}-${MACHINE}.bin-sdcard fip.bin-sdcard)

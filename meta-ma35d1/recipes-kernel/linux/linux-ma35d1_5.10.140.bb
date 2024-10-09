@@ -23,6 +23,8 @@ SRC_URI = "${KERNEL_SRC}"
 
 SRC_URI += " \
     file://optee.config \
+    file://dts-reserve \
+    file://ampipi.sh \
     file://cfg80211.config \
     "
 
@@ -45,6 +47,18 @@ do_configure_prepend() {
     bbnote "Copying defconfig"
     cp ${S}/arch/${ARCH}/configs/${KERNEL_DEFCONFIG} ${WORKDIR}/defconfig
     cat ${WORKDIR}/cfg80211.config >> ${WORKDIR}/defconfig
+
+    if [ "${TFA_LOAD_SCP}" = "yes" ]; then        
+        if [ "${TFA_SCP_M4}" = "no" ]; then
+            for dtbf in ${KERNEL_DEVICETREE}; do
+	        dt=$(echo $dtbf | sed 's/\.dtb/\.dts/')
+                if [ "${TFA_SCP_IPI}" = "yes" ]; then
+                    ${WORKDIR}/ampipi.sh ${S}/arch/${ARCH}/boot/dts/nuvoton/${TFA_PLATFORM}.dtsi
+                fi
+                ${WORKDIR}/dts-reserve ${S}/arch/${ARCH}/boot/dts/${dt} ${TFA_SCP_BASE} ${TFA_SCP_LEN}
+            done
+        fi
+    fi
 
     if ${@bb.utils.contains('MACHINE_FEATURES', 'optee', 'true', 'false', d)}; then
         cat ${WORKDIR}/optee.config >> ${WORKDIR}/defconfig
