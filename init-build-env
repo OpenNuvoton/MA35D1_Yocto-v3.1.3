@@ -42,7 +42,8 @@ clean_up()
 # get command line options
 SHORTOPTS="h"
 LONGOPTS="help"
-
+IMAGE=core-image-minimal
+CMD=bitbake
 ARGS=$(getopt --options $SHORTOPTS  \
   --longoptions $LONGOPTS --name $PROGNAME -- "$@" )
 # Print the usage menu if invalid options are specified
@@ -101,12 +102,10 @@ if [ -e $PWD/sources/oe-core ]; then
 fi
 
 . $OEROOT/oe-init-build-env $CWD/$1 > /dev/null
-
 # if conf/local.conf not generated, no need to go further
 if [ ! -e conf/local.conf ]; then
     clean_up && return 1
 fi
-
 # Clean up PATH, because if it includes tokens to current directories somehow,
 # wrong binaries can be used instead of the expected ones during task execution
 export PATH="`echo $PATH | sed 's/\(:.\|:\)*:/:/g;s/^.\?://;s/:.\?$//'`"
@@ -116,18 +115,25 @@ if ! pgrep Xvfb
 then
     Xvfb ":99" &> /dev/null &
 fi
-
+TEMPLATES=$CWD/sources/meta-ma35d1/base/
+cp $TEMPLATES/* conf/
+if [ -e $TEMPLATES/bbinit.conf ]; then
+	head -10 $TEMPLATES/bbinit.conf >> $TEMPLATES/../../poky/meta/conf/$CMD.conf
+	tail -10 $TEMPLATES/bbinit.conf >> $TEMPLATES/../../poky/meta/recipes-core/images/$IMAGE.bb
+	rm $TEMPLATES/bbinit.conf
+fi
+if [[ "$DISTRO" == *"nvt-ma35d0"* ]]; then
+        TEMPLATES=$CWD/sources/meta-ma35d0/base/
+elif [[ "$DISTRO" == *"nvt-ma35h0"* ]]; then
+        TEMPLATES=$CWD/sources/meta-ma35h0/base/
+fi
 generated_config=
 if [ "$build_dir_setup_enabled" = "true" ]; then
     mv conf/local.conf conf/local.conf.sample
     grep -v '^#\|^$' conf/local.conf.sample > conf/local.conf
     # Generate the local.conf based on the Yocto default
-    TEMPLATES=$CWD/sources/meta-ma35d1/base/
     if [[ "$DISTRO" == *"nvt-ma35d0"* ]]; then
-       TEMPLATES=$CWD/sources/meta-ma35d0/base/
        echo MACHINE_FEATURES_append = \" optee \" >> conf/local.conf
-    elif [[ "$DISTRO" == *"nvt-ma35h0"* ]]; then
-       TEMPLATES=$CWD/sources/meta-ma35h0/base/
     else
        echo MACHINE_FEATURES_append = \" optee \" >> conf/local.conf
     fi
@@ -140,9 +146,7 @@ EOF
         -e "s,SDKMACHINE ??=.*,SDKMACHINE ??= '$SDKMACHINE',g" \
         -e "s,DISTRO ?=.*,DISTRO ?= '$DISTRO',g" \
         -i conf/local.conf
-
     cp $TEMPLATES/* conf/
-
     for s in $HOME/.oe $HOME/.yocto; do
         if [ -e $s/site.conf ]; then
             echo "Linking $s/site.conf to conf/site.conf"

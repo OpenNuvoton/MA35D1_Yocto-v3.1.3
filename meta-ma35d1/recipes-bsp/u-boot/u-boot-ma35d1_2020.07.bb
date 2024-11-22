@@ -19,6 +19,8 @@ SRCREV = "${UBOOT_SRCREV}"
 
 SRC_URI += " file://uEnv-spinand-ubi.cfg \
              file://uEnv-nand-ubi.cfg \
+             file://uEnv-initramfs-ubi.cfg \
+             file://0001-ram.patch \
            "
 PV = "${SRCBRANCH}"
 S = "${WORKDIR}/git"
@@ -91,6 +93,10 @@ do_compile_append() {
 				sed -i "s/boot_targets=/boot_targets=nand0 /1" ${B}/${config}/u-boot-initial-env-${type}
 			fi
 
+                        if [ "${type}" = "initramfs" ]; then
+                                sed -i "s/boot_targets=/boot_targets=mtd0 /1" ${B}/${config}/u-boot-initial-env-${type}
+                        fi
+
                         ${B}/${config}/tools/mkenvimage ${ENVOPT} ${B}/${config}/u-boot-initial-env.bin-${type} ${B}/${config}/u-boot-initial-env-${type}
                     fi
                 fi
@@ -119,6 +125,8 @@ do_deploy_append() {
                    cp ${WORKDIR}/uEnv-spinand-ubi.cfg ${DEPLOY_DIR_IMAGE}/u-boot-initial-env-spinand-ubi.cfg
                 elif [ "${type}" = "nand" ]; then
                    cp ${WORKDIR}/uEnv-nand-ubi.cfg ${DEPLOY_DIR_IMAGE}/u-boot-initial-env-nand-ubi.cfg
+                elif [ "${type}" = "initramfs" ]; then
+                   cp ${WORKDIR}/uEnv-initramfs-ubi.cfg ${DEPLOY_DIR_IMAGE}/u-boot-initial-env-initramfs-ubi.cfg
                 fi
             done
             unset  j

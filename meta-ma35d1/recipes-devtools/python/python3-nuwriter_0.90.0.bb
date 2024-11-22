@@ -16,10 +16,12 @@ PACKAGES = ""
 SRC_URI += " file://header-nand.json \
              file://header-sdcard.json \
              file://header-spinand.json \
+             file://header-spinand-initramfs.json \
              file://header-spinor.json \
              file://pack-nand.json \
              file://pack-sdcard.json \
              file://pack-spinand.json \
+             file://pack-spinand-initramfs.json \
              file://pack-spinor.json \
              file://enc_fip.json \
            "
@@ -52,9 +54,11 @@ do_install(){
     cp ${WORKDIR}/header-nand.json  ${D}${datadir}/nuwriter/
     cp ${WORKDIR}/header-sdcard.json  ${D}${datadir}/nuwriter/
     cp ${WORKDIR}/header-spinand.json  ${D}${datadir}/nuwriter/
+    cp ${WORKDIR}/header-spinand-initramfs.json  ${D}${datadir}/nuwriter/
     cp ${WORKDIR}/header-spinor.json  ${D}${datadir}/nuwriter/
     cp ${WORKDIR}/pack-nand.json  ${D}${datadir}/nuwriter/
     cp ${WORKDIR}/pack-spinand.json  ${D}${datadir}/nuwriter/
+    cp ${WORKDIR}/pack-spinand-initramfs.json  ${D}${datadir}/nuwriter/
     cp ${WORKDIR}/pack-spinor.json  ${D}${datadir}/nuwriter/
     cp ${WORKDIR}/pack-sdcard.json  ${D}${datadir}/nuwriter/
     cp ${WORKDIR}/enc_fip.json  ${D}${datadir}/nuwriter/
