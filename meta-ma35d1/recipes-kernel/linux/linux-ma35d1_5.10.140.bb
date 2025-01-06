@@ -31,12 +31,12 @@ SRC_URI += " \
 
 SRC_URI += "${@bb.utils.contains('DISTRO_FEATURES', '88x2bu', ' file://88x2bu.ko', '', d)}"
 
+DEPENDS += "openssl-native util-linux-native libyaml-native"
+DEFAULT_PREFERENCE = "1"
+
 SRCREV="${KERNEL_SRCREV}"
 S = "${WORKDIR}/git"
 B = "${WORKDIR}/build"
-
-DEPENDS += "openssl-native util-linux-native libyaml-native"
-DEFAULT_PREFERENCE = "1"
 # =========================================================================
 # Kernel
 # =========================================================================
@@ -47,6 +47,15 @@ do_configure_prepend() {
     bbnote "Copying defconfig"
     cp ${S}/arch/${ARCH}/configs/${KERNEL_DEFCONFIG} ${WORKDIR}/defconfig
     cat ${WORKDIR}/cfg80211.config >> ${WORKDIR}/defconfig
+
+    for dtbf in ${KERNEL_DEVICETREE}; do
+        dt=$(echo $dtbf | sed 's/\.dtb/\.dts/')
+            if echo "${KERNEL_DEFCONFIG}" | grep -q "drm"; then
+                sed -i "s/ma35d1.dtsi/ma35d1-drm.dtsi/" ${S}/arch/${ARCH}/boot/dts/${dt}
+            else
+                sed -i "s/ma35d1-drm.dtsi/ma35d1.dtsi/" ${S}/arch/${ARCH}/boot/dts/${dt}
+            fi
+    done
 
     if [ "${TFA_LOAD_SCP}" = "yes" ]; then        
         if [ "${TFA_SCP_M4}" = "no" ]; then

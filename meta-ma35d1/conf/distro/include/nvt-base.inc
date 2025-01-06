@@ -22,7 +22,10 @@ PREFERRED_PROVIDER_udev-utils = "systemd"
 # =========================================================================
 # DISTRO features
 # =========================================================================
-DISTRO_FEATURES ?= " vc8000 dcultrafb gc520 directfb virtualization systemd alsa"
+DISTRO_FEATURES ?= " vc8000 gc520 directfb virtualization systemd alsa"
+
+CORE_IMAGE_EXTRA_INSTALL += " ${@bb.utils.contains('KERNEL_DEFCONFIG', 'ma35d1_drm_defconfig', '', 'dcultrafb', d)} "
+
 VIRTUAL-RUNTIME_init_manager = "systemd"
 DISTRO_FEATURES_BACKFILL_CONSIDERED += "sysvinit"
 
