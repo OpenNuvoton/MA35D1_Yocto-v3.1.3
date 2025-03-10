@@ -80,6 +80,7 @@ do_compile_append() {
                         fi
 			if [ "${type}" = "spinand" ]; then
 				sed -i "s/boot_targets=/boot_targets=mtd0 /1" ${B}/${config}/u-boot-initial-env-${type}
+				sed -i "s/bootcmd_mtd0=run ramboot/bootcmd_mtd0=run spinandboot/1" ${B}/${config}/u-boot-initial-env-${type}
 			fi
 
 			if [ "${type}" = "spinor" ]; then
