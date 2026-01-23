@@ -30,6 +30,7 @@ SRC_URI += " \
 
 
 SRC_URI += "${@bb.utils.contains('DISTRO_FEATURES', '88x2bu', ' file://88x2bu.ko', '', d)}"
+SRC_URI += "${@bb.utils.contains('DISTRO_FEATURES', 'rt-patch', ' file://patch-5.10.140-rt73.patch', '', d)}"
 
 SRCREV="${KERNEL_SRCREV}"
 S = "${WORKDIR}/git"
