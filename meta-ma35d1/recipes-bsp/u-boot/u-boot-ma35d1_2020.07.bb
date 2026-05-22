@@ -81,6 +81,9 @@ do_compile_append() {
 			if [ "${type}" = "spinand" ]; then
 				sed -i "s/boot_targets=/boot_targets=mtd0 /1" ${B}/${config}/u-boot-initial-env-${type}
 				sed -i "s/bootcmd_mtd0=run ramboot/bootcmd_mtd0=run spinandboot/1" ${B}/${config}/u-boot-initial-env-${type}
+				if [ "${config}" = "ma35d05k_spinand_defconfig" ]; then
+					sed -i "s/spinand_ubiblock=9/spinand_ubiblock=4/1" ${B}/${config}/u-boot-initial-env-${type}
+				fi
 			fi
 
 			if [ "${type}" = "spinor" ]; then
