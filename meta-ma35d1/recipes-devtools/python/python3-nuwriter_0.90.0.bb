@@ -37,6 +37,7 @@ DEPENDS += " \
     python3-tqdm-native \
     python3-ecdsa-native \
     python3-six-native \
+    python3-pkcs11 \
     jq-native \
 "
 
